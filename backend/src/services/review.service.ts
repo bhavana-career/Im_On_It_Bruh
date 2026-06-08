@@ -154,6 +154,50 @@ export class ReviewService {
       });
     }
 
+    // 2.5 Notify all active hub members about the approved meeting summary and duration
+    try {
+      const meeting = await Meeting.findById(artifact.meetingId);
+      if (meeting) {
+        const activeMemberships = await HubMembership.find({ hubId: artifact.hubId, status: 'active' }).populate('userId');
+        const allMembers = activeMemberships.map((m) => m.userId as any);
+        const allCreatedTasks = await Task.find({ meetingId: artifact.meetingId });
+
+        for (const member of allMembers) {
+          // Find tasks assigned to this specific member
+          const memberTasks = allCreatedTasks.filter((t) => t.assigneeId.toString() === member._id.toString());
+          
+          let taskListString = '';
+          if (memberTasks.length > 0) {
+            taskListString = '\n\nYour Assigned Tasks:\n' + memberTasks.map((t, idx) => {
+              return `${idx + 1}. ${t.title} (Deadline: ${new Date(t.deadline).toLocaleDateString()})`;
+            }).join('\n');
+          } else {
+            taskListString = '\n\nYour Assigned Tasks:\n- None';
+          }
+
+          const notifyMsg = `Meeting: "${meeting.title}"\nDate: ${new Date(meeting.scheduledAt).toLocaleString()}\nDuration: ${meeting.estimatedDuration} mins\n\nSummary:\n${payload.summary}${taskListString}`;
+
+          await notificationDispatchQueue.add({
+            userId: member._id.toString(),
+            type: 'MEETING_SUMMARY_DISTRIBUTED',
+            title: `Meeting Review Approved: ${meeting.title}`,
+            message: notifyMsg,
+            relatedEntity: {
+              type: 'Meeting',
+              id: meeting._id.toString(),
+            },
+            channels: {
+              platform: true,
+              email: true,
+              whatsapp: false,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[ReviewService] Failed to send meeting summaries to team:', err);
+    }
+
     // 3. Create OrganizationalMemory
     const memory = await OrganizationalMemory.create({
       hubId: artifact.hubId,

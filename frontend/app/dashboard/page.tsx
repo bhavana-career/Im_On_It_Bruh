@@ -67,25 +67,25 @@ export default function DashboardHome() {
     if (!(session as any)?.accessToken) return;
     try {
       // Fetch Profile Details
-      const profRes = await fetch('${API_URL}/api/v1/users/profile', {
+      const profRes = await fetch(`${API_URL}/api/v1/users/profile', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (profRes.ok) setProfile(await profRes.json());
 
       // Fetch Recommendations
-      const recRes = await fetch('${API_URL}/api/v1/hubs/recommendations', {
+      const recRes = await fetch(`${API_URL}/api/v1/hubs/recommendations', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (recRes.ok) setRecommendations(await recRes.json());
 
       // Fetch Admin Hubs
-      const admRes = await fetch('${API_URL}/api/v1/hubs/admin', {
+      const admRes = await fetch(`${API_URL}/api/v1/hubs/admin', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (admRes.ok) setAdminHubs(await admRes.json());
 
       // Fetch Member Hubs
-      const memRes = await fetch('${API_URL}/api/v1/hubs/member', {
+      const memRes = await fetch(`${API_URL}/api/v1/hubs/member', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (memRes.ok) setMemberHubs(await memRes.json());
@@ -108,7 +108,7 @@ export default function DashboardHome() {
     setError('');
 
     try {
-      const res = await fetch('${API_URL}/api/v1/hubs', {
+      const res = await fetch(`${API_URL}/api/v1/hubs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

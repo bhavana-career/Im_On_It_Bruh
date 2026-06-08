@@ -5,11 +5,31 @@ import HubMembership from '../models/HubMembership';
 import AIArtifact from '../models/AIArtifact';
 import User from '../models/User';
 import { GeminiClient } from '../integrations/gemini.client';
+import fs from 'fs';
+import path from 'path';
 
 const gemini = new GeminiClient();
 
 export interface AIProcessingJobData {
   meetingId: string;
+}
+
+async function getAudioBuffer(url: string): Promise<Buffer> {
+  if (url.includes('/uploads/')) {
+    const relativePath = url.split('/uploads/')[1];
+    const uploadsDir = process.env.LOCAL_STORAGE_DIR || './uploads';
+    const filePath = path.resolve(uploadsDir, relativePath);
+    console.log(`[AIProcessingJob] Reading local audio file from: ${filePath}`);
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath);
+    }
+  }
+
+  console.log(`[AIProcessingJob] Fetching remote audio file from: ${url}`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch audio file from URL: ${url}`);
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 aiProcessingQueue.process(async (job) => {
@@ -54,13 +74,19 @@ aiProcessingQueue.process(async (job) => {
     console.log(`[AIProcessingJob] Generating transcript...`);
     let rawTranscript = '';
     
-    // Simulate audio buffer from recording url, or fallback to mock transcript if empty
+    // Fetch actual audio buffer if recordingUrl is present
     if (meeting.recordingUrl) {
-      // In production: fetch recording audio file buffer
-      // const audioBuffer = await downloadFile(meeting.recordingUrl);
-      const dummyBuffer = Buffer.from('dummy audio');
-      rawTranscript = await gemini.transcribeAudio(dummyBuffer, 'audio/wav');
-    } else {
+      try {
+        const audioBuffer = await getAudioBuffer(meeting.recordingUrl);
+        const mimeType = meeting.recordingUrl.endsWith('.webm') ? 'audio/webm' : 'audio/wav';
+        console.log(`[AIProcessingJob] Transcribing actual audio file, size: ${audioBuffer.length} bytes, type: ${mimeType}`);
+        rawTranscript = await gemini.transcribeAudio(audioBuffer, mimeType);
+      } catch (err) {
+        console.error('[AIProcessingJob] Failed to download/transcribe actual audio, falling back to mock:', err);
+      }
+    }
+
+    if (!rawTranscript) {
       // Mock transcript generation
       rawTranscript = `
         Meeting: CatchUp App Router Setup

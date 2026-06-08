@@ -180,11 +180,14 @@ export class MeetingService {
   /**
    * End a meeting session, which fires the background AI processing job.
    */
-  async endMeeting(meetingId: string) {
+  async endMeeting(meetingId: string, recordingUrl?: string) {
     const meeting = await Meeting.findById(meetingId);
     if (!meeting) throw new Error('Meeting not found');
 
     meeting.status = 'ended';
+    if (recordingUrl) {
+      meeting.recordingUrl = recordingUrl;
+    }
     await meeting.save();
 
     // Record left time for participants currently in meeting

@@ -390,9 +390,19 @@ router.post('/meetings/:meetingId/join', authMiddleware, async (req: Authenticat
   }
 });
 
-router.post('/meetings/:meetingId/end', authMiddleware, async (req: AuthenticatedRequest, res) => {
+router.post('/meetings/:meetingId/end', authMiddleware, upload.single('audio'), async (req: AuthenticatedRequest, res) => {
   try {
-    const meeting = await MeetingService.endMeeting(req.params.meetingId);
+    let recordingUrl = undefined;
+    if (req.file) {
+      console.log(`[Router] Received meeting audio recording file: ${req.file.originalname} (${req.file.size} bytes)`);
+      const storageProvider = getStorageProvider();
+      const folderPath = `meetings/${req.params.meetingId}`;
+      const uploadDetails = await storageProvider.uploadFile(req.file, folderPath);
+      recordingUrl = uploadDetails.fileUrl;
+      console.log(`[Router] Uploaded meeting recording to: ${recordingUrl}`);
+    }
+
+    const meeting = await MeetingService.endMeeting(req.params.meetingId, recordingUrl);
     res.json(meeting);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
