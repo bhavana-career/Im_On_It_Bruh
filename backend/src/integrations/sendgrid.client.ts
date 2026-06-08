@@ -116,4 +116,164 @@ export class SendGridClient {
       </div>
     `;
   }
+
+  getMeetingScheduledTemplate(
+    meetingTitle: string,
+    hubName: string,
+    scheduledAt: string,
+    description: string,
+    dashboardUrl: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+        </div>
+        <p style="color: #4a5568;">Hello,</p>
+        <p style="color: #4a5568;">A new meeting has been scheduled in the <strong style="color: #1a202c;">${hubName}</strong> workspace.</p>
+        <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 12px; font-weight: bold; width: 30%; color: #718096; font-size: 13px;">Meeting</td>
+              <td style="padding: 8px 12px; color: #1a202c; font-weight: bold; font-size: 14px;">${meetingTitle}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #718096; font-size: 13px;">Workspace</td>
+              <td style="padding: 8px 12px; color: #1a202c; font-size: 13px;">${hubName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #718096; font-size: 13px;">Scheduled At</td>
+              <td style="padding: 8px 12px; color: #E85D04; font-weight: bold; font-size: 13px;">${scheduledAt}</td>
+            </tr>
+            ${description ? `
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="padding: 8px 12px; font-weight: bold; color: #718096; font-size: 13px; vertical-align: top;">Details</td>
+              <td style="padding: 8px 12px; color: #4a5568; font-size: 13px; line-height: 1.5;">${description}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${dashboardUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">View in Dashboard</a>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+      </div>
+    `;
+  }
+
+  getMeetingReminderTemplate(
+    meetingTitle: string,
+    hubName: string,
+    timeLabel: string,
+    joinUrl: string,
+    messageAdminUrl: string
+  ): string {
+    const isUrgent = timeLabel === '15 minutes';
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+        </div>
+        <div style="text-align: center; background-color: ${isUrgent ? '#fff7ed' : '#f7fafc'}; border: 1px solid ${isUrgent ? '#fed7aa' : '#e2e8f0'}; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+          <div style="font-size: 36px; margin-bottom: 8px;">${isUrgent ? '⏰' : '📅'}</div>
+          <h3 style="color: #1a202c; margin: 0 0 8px 0; font-size: 18px;">${meetingTitle}</h3>
+          <p style="color: ${isUrgent ? '#c2410c' : '#4a5568'}; font-weight: bold; font-size: 15px; margin: 0;">
+            Starts in <strong>${timeLabel}</strong>
+          </p>
+          <p style="color: #718096; font-size: 13px; margin: 8px 0 0 0;">Workspace: ${hubName}</p>
+        </div>
+        <table style="width: 100%; border-collapse: separate; border-spacing: 12px;">
+          <tr>
+            <td style="width: 50%; text-align: center;">
+              <a href="${joinUrl}" style="display: block; background-color: #E85D04; color: white; padding: 14px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+                🚀 Join Meeting
+              </a>
+            </td>
+            <td style="width: 50%; text-align: center;">
+              <a href="${messageAdminUrl}" style="display: block; background-color: #f7fafc; color: #4a5568; padding: 14px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; border: 1px solid #e2e8f0;">
+                💬 Message Admin
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="color: #a0aec0; font-size: 12px; text-align: center; margin-top: 16px;">
+          Can't attend? Click "Message Admin" to notify the meeting host privately.
+        </p>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+      </div>
+    `;
+  }
+
+  getBroadcastTemplate(
+    adminName: string,
+    hubName: string,
+    broadcastTitle: string,
+    broadcastBody: string,
+    urgency: string,
+    replyUrl: string
+  ): string {
+    const urgencyConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
+      critical: { color: '#DC2626', bg: '#fef2f2', border: '#fecaca', label: '🔴 CRITICAL' },
+      high:     { color: '#E85D04', bg: '#fff7ed', border: '#fed7aa', label: '🟠 HIGH'     },
+      medium:   { color: '#D97706', bg: '#fffbeb', border: '#fde68a', label: '🟡 MEDIUM'   },
+      low:      { color: '#059669', bg: '#f0fdf4', border: '#a7f3d0', label: '🟢 LOW'      },
+    };
+    const u = urgencyConfig[urgency] || urgencyConfig.medium;
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+          <span style="font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; background-color: ${u.bg}; color: ${u.color}; border: 1px solid ${u.border}; text-transform: uppercase; letter-spacing: 0.5px;">${u.label}</span>
+          <span style="font-size: 12px; color: #718096;">from ${hubName}</span>
+        </div>
+        <p style="color: #4a5568; font-size: 14px; margin: 0 0 8px 0;">
+          <strong style="color: #1a202c;">${adminName}</strong> sent an announcement to your workspace:
+        </p>
+        <div style="background-color: #f7fafc; border-left: 4px solid #E85D04; border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 16px 0;">
+          <h3 style="color: #1a202c; margin: 0 0 10px 0; font-size: 16px;">${broadcastTitle}</h3>
+          <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0;">${broadcastBody}</p>
+        </div>
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${replyUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Reply Privately to Admin</a>
+        </div>
+        <p style="color: #a0aec0; font-size: 12px; text-align: center; margin-top: 12px;">
+          Your reply will only be visible to ${adminName}.
+        </p>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+      </div>
+    `;
+  }
+
+  getBroadcastReplyTemplate(
+    memberName: string,
+    broadcastTitle: string,
+    replyMessage: string,
+    viewRepliesUrl: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+        </div>
+        <p style="color: #4a5568;">Hello,</p>
+        <p style="color: #4a5568;">
+          <strong style="color: #1a202c;">${memberName}</strong> replied to your announcement: <strong style="color: #1a202c;">${broadcastTitle}</strong>
+        </p>
+        <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 16px 0; position: relative;">
+          <div style="font-size: 28px; color: #e2e8f0; line-height: 1; margin-bottom: 4px;">&ldquo;</div>
+          <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0; font-style: italic;">${replyMessage}</p>
+        </div>
+        <p style="color: #718096; font-size: 13px;">This reply is private — only you can see it.</p>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${viewRepliesUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">View All Replies</a>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+      </div>
+    `;
+  }
 }
