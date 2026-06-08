@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const fetchNotifications = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/notifications', {
+      const res = await fetch(`${API_URL}/api/v1/notifications`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (res.ok) {
@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!session?.user || status !== 'authenticated') return;
 
-    const socket = io(`${API_URL}');
+    const socket = io(`${API_URL}`);
 
     // Join room on connection
     socket.on('connect', () => {
@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleMarkAllRead = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/notifications/read-all', {
+      const res = await fetch(`${API_URL}/api/v1/notifications/read-all`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });

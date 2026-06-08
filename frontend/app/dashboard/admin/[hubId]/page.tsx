@@ -199,7 +199,7 @@ export default function AdminHubDashboard() {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       // Try fetching memberships to get hub name
-      const admRes = await fetch(`${API_URL}/api/v1/hubs/admin', {
+      const admRes = await fetch(`${API_URL}/api/v1/hubs/admin`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (admRes.ok) {
@@ -291,7 +291,7 @@ export default function AdminHubDashboard() {
               submittedBy: { profileName: 'Developer User', email: 'dev@company.com' },
               version: 1,
               note: 'Hey Admin, I finished coding all Mongoose models in src/models. Check the files!',
-              attachments: [{ fileName: 'User.ts', url: `${API_URL}/uploads/User.ts', mimeType: 'text/plain' }],
+              attachments: [{ fileName: 'User.ts', url: `${API_URL}/uploads/User.ts`, mimeType: 'text/plain' }],
               driveLinks: ['https://drive.google.com/open?id=123'],
               status: 'pending',
             },
@@ -355,7 +355,7 @@ export default function AdminHubDashboard() {
     const scheduledDate = getSelectedDateTime();
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/meetings', {
+      const res = await fetch(`${API_URL}/api/v1/meetings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -551,7 +551,7 @@ export default function AdminHubDashboard() {
     if (!broadcastTitle || !broadcastBody || !(session as any)?.accessToken) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/broadcasts', {
+      const res = await fetch(`${API_URL}/api/v1/broadcasts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
