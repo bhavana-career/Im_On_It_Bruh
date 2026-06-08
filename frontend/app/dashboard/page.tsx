@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardStore } from '../../store/dashboardStore';
-
+import { API_URL } from '@/lib/config';
 export default function DashboardHome() {
   const { data: session } = useSession();
   const { activeTab, setActiveTab } = useDashboardStore();
@@ -67,25 +67,25 @@ export default function DashboardHome() {
     if (!(session as any)?.accessToken) return;
     try {
       // Fetch Profile Details
-      const profRes = await fetch('http://localhost:5000/api/v1/users/profile', {
+      const profRes = await fetch('${API_URL}/api/v1/users/profile', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (profRes.ok) setProfile(await profRes.json());
 
       // Fetch Recommendations
-      const recRes = await fetch('http://localhost:5000/api/v1/hubs/recommendations', {
+      const recRes = await fetch('${API_URL}/api/v1/hubs/recommendations', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (recRes.ok) setRecommendations(await recRes.json());
 
       // Fetch Admin Hubs
-      const admRes = await fetch('http://localhost:5000/api/v1/hubs/admin', {
+      const admRes = await fetch('${API_URL}/api/v1/hubs/admin', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (admRes.ok) setAdminHubs(await admRes.json());
 
       // Fetch Member Hubs
-      const memRes = await fetch('http://localhost:5000/api/v1/hubs/member', {
+      const memRes = await fetch('${API_URL}/api/v1/hubs/member', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (memRes.ok) setMemberHubs(await memRes.json());
@@ -108,7 +108,7 @@ export default function DashboardHome() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/v1/hubs', {
+      const res = await fetch('${API_URL}/api/v1/hubs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ export default function DashboardHome() {
       message: `Are you sure you want to request to join ${hubName}?`,
       onConfirm: async () => {
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/join`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/join`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -371,7 +371,7 @@ export default function DashboardHome() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
                               {hub.profileImageUrl ? (
-                                <img src={`http://localhost:5000${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                                <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
                               ) : (
                                 <span>{hub.name.charAt(0).toUpperCase()}</span>
                               )}
@@ -422,7 +422,7 @@ export default function DashboardHome() {
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
                             {hub.profileImageUrl ? (
-                              <img src={`http://localhost:5000${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                              <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
                             ) : (
                               <span>{hub.name.charAt(0).toUpperCase()}</span>
                             )}
@@ -471,7 +471,7 @@ export default function DashboardHome() {
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
                             {hub.profileImageUrl ? (
-                              <img src={`http://localhost:5000${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                              <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
                             ) : (
                               <span>{hub.name.charAt(0).toUpperCase()}</span>
                             )}

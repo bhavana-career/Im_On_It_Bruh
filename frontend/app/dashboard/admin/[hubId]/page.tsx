@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
+import { API_URL } from '@/lib/config';
 
 
 export default function AdminHubDashboard() {
@@ -156,6 +157,7 @@ export default function AdminHubDashboard() {
   const [lkToken, setLkToken] = useState<string | null>(null);
   const [lkRoom, setLkRoom] = useState<string | null>(null);
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Forms & Modal states
   const [meetingTitle, setMeetingTitle] = useState('');
@@ -193,11 +195,11 @@ export default function AdminHubDashboard() {
   const fetchHubDetails = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/users/profile`, {
+      const res = await fetch(`${API_URL}/api/v1/users/profile`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       // Try fetching memberships to get hub name
-      const admRes = await fetch('http://localhost:5000/api/v1/hubs/admin', {
+      const admRes = await fetch('${API_URL}/api/v1/hubs/admin', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (admRes.ok) {
@@ -221,7 +223,7 @@ export default function AdminHubDashboard() {
     if (!editHubName || !(session as any)?.accessToken) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}`, {
+      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -255,7 +257,7 @@ export default function AdminHubDashboard() {
     try {
       if (activeTab === 'meetings') {
         // Fetch Scheduled meetings
-        const res = await fetch(`http://localhost:5000/api/v1/meetings`, {
+        const res = await fetch(`${API_URL}/api/v1/meetings`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) {
@@ -265,7 +267,7 @@ export default function AdminHubDashboard() {
       }
 
       if (activeTab === 'tasks') {
-        const res = await fetch(`http://localhost:5000/api/v1/tasks/hub/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/tasks/hub/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setTasks(await res.json());
@@ -276,7 +278,7 @@ export default function AdminHubDashboard() {
         // Or fetch custom submissions list. Let's do task-submissions aggregation.
         // We'll fetch all hub tasks, then map/query their submissions or mock the submissions queue
         // A direct mock queue represents the database submissions collection for this hub.
-        const taskRes = await fetch(`http://localhost:5000/api/v1/tasks/hub/${hubId}`, {
+        const taskRes = await fetch(`${API_URL}/api/v1/tasks/hub/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (taskRes.ok) {
@@ -289,7 +291,7 @@ export default function AdminHubDashboard() {
               submittedBy: { profileName: 'Developer User', email: 'dev@company.com' },
               version: 1,
               note: 'Hey Admin, I finished coding all Mongoose models in src/models. Check the files!',
-              attachments: [{ fileName: 'User.ts', url: 'http://localhost:5000/uploads/User.ts', mimeType: 'text/plain' }],
+              attachments: [{ fileName: 'User.ts', url: '${API_URL}/uploads/User.ts', mimeType: 'text/plain' }],
               driveLinks: ['https://drive.google.com/open?id=123'],
               status: 'pending',
             },
@@ -298,14 +300,14 @@ export default function AdminHubDashboard() {
       }
 
       if (activeTab === 'broadcasts') {
-        const res = await fetch(`http://localhost:5000/api/v1/broadcasts/hub/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/broadcasts/hub/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setBroadcasts(await res.json());
       }
 
       if (activeTab === 'members') {
-        const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/members-directory`, {
+        const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/members-directory`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) {
@@ -317,7 +319,7 @@ export default function AdminHubDashboard() {
       }
 
       if (activeTab === 'analytics') {
-        const res = await fetch(`http://localhost:5000/api/v1/analytics/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/analytics/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setAnalytics(await res.json());
@@ -353,7 +355,7 @@ export default function AdminHubDashboard() {
     const scheduledDate = getSelectedDateTime();
 
     try {
-      const res = await fetch('http://localhost:5000/api/v1/meetings', {
+      const res = await fetch('${API_URL}/api/v1/meetings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -386,7 +388,7 @@ export default function AdminHubDashboard() {
   const handleStartMeeting = async (meetingId: string) => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/meetings/${meetingId}/join`, {
+      const res = await fetch(`${API_URL}/api/v1/meetings/${meetingId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
@@ -404,7 +406,7 @@ export default function AdminHubDashboard() {
   const handleEndMeeting = async () => {
     if (!currentMeetingId || !(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/meetings/${currentMeetingId}/end`, {
+      const res = await fetch(`${API_URL}/api/v1/meetings/${currentMeetingId}/end`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
@@ -426,10 +428,11 @@ export default function AdminHubDashboard() {
   // AI REVIEW WORKFLOW
   // -----------------------------------------
 
-  const fetchAiArtifact = async (mId: string) => {
+  const fetchAiArtifact = async (mId: string, retryCount = 0) => {
     if (!(session as any)?.accessToken) return;
+    setIsAnalyzing(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/review/pending/${mId}`, {
+      const res = await fetch(`${API_URL}/api/v1/review/pending/${mId}`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (res.ok) {
@@ -440,18 +443,28 @@ export default function AdminHubDashboard() {
         setReviewDecisions(data.decisions || []);
         setReviewOutcomes(data.outcomes || []);
         setReviewAssignments(data.rawAssignments || []);
+        setIsAnalyzing(false);
       } else {
-        setAiArtifact(null);
+        // If not found and we are under retry limit, poll again in 2 seconds
+        if (res.status === 404 && retryCount < 15) {
+          setTimeout(() => {
+            fetchAiArtifact(mId, retryCount + 1);
+          }, 2000);
+        } else {
+          setAiArtifact(null);
+          setIsAnalyzing(false);
+        }
       }
     } catch (err) {
       console.error(err);
+      setIsAnalyzing(false);
     }
   };
 
   const handleApproveReview = async () => {
     if (!aiArtifact || !(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/review/${aiArtifact._id}/approve`, {
+      const res = await fetch(`${API_URL}/api/v1/review/${aiArtifact._id}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -490,7 +503,7 @@ export default function AdminHubDashboard() {
   const handleApproveSub = async (subId: string) => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/submissions/${subId}/approve`, {
+      const res = await fetch(`${API_URL}/api/v1/submissions/${subId}/approve`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
@@ -510,7 +523,7 @@ export default function AdminHubDashboard() {
     if (!rejectFeedback || !(session as any)?.accessToken) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/submissions/${rejectSubId}/reject`, {
+      const res = await fetch(`${API_URL}/api/v1/submissions/${rejectSubId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -538,7 +551,7 @@ export default function AdminHubDashboard() {
     if (!broadcastTitle || !broadcastBody || !(session as any)?.accessToken) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/v1/broadcasts', {
+      const res = await fetch('${API_URL}/api/v1/broadcasts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -566,7 +579,7 @@ export default function AdminHubDashboard() {
   const fetchReplies = async (bId: string) => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/broadcasts/${bId}/replies`, {
+      const res = await fetch(`${API_URL}/api/v1/broadcasts/${bId}/replies`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (res.ok) {
@@ -592,7 +605,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/requests/approve/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/requests/approve/${userId}`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -614,7 +627,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/requests/reject/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/requests/reject/${userId}`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -636,7 +649,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/invite/revoke/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/invite/revoke/${userId}`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -658,7 +671,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/invite/resend/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/invite/resend/${userId}`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -683,7 +696,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/promote/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/promote/${userId}`, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -705,7 +718,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/remove/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/remove/${userId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -726,7 +739,7 @@ export default function AdminHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken || !session?.user) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/remove/${(session.user as any).id}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/remove/${(session.user as any).id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -752,7 +765,7 @@ export default function AdminHubDashboard() {
     formData.append('avatar', file);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/avatar`, {
+      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/avatar`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${(session as any).accessToken}`,
@@ -783,7 +796,7 @@ export default function AdminHubDashboard() {
           {/* Workspace Logo with hover upload */}
           <div className="relative group cursor-pointer w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 border-2 border-primary/20 flex items-center justify-center text-xl font-bold text-white shadow-md">
             {hubAvatar ? (
-              <img src={`http://localhost:5000${hubAvatar}`} alt={hubName} className="w-full h-full object-cover" />
+              <img src={`${API_URL}${hubAvatar}`} alt={hubName} className="w-full h-full object-cover" />
             ) : (
               <span>{hubName.charAt(0).toUpperCase()}</span>
             )}
@@ -854,7 +867,7 @@ export default function AdminHubDashboard() {
       {lkToken && lkRoom && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="h-14 bg-card border-b border-border px-6 flex items-center justify-between">
-            <span className="font-bold text-sm">Meeting Host Mode: {lkRoom}</span>
+            <span className="font-bold text-sm">Meeting Host Mode: {meetings.find((m: any) => m._id === currentMeetingId)?.title || 'Live Meeting'}</span>
             <button
               onClick={handleEndMeeting}
               className="px-4 py-2 rounded-xl bg-red-600 hover:bg-opacity-90 text-white font-bold text-xs cursor-pointer"
@@ -862,7 +875,7 @@ export default function AdminHubDashboard() {
               End Meeting & Analyze
             </button>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative h-full">
             <LiveKitRoom
               video={true}
               audio={true}
@@ -970,7 +983,7 @@ export default function AdminHubDashboard() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
                     {hubAvatar ? (
-                      <img src={`http://localhost:5000${hubAvatar}`} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={`${API_URL}${hubAvatar}`} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <span>{editHubName.charAt(0).toUpperCase()}</span>
                     )}
@@ -1438,13 +1451,59 @@ export default function AdminHubDashboard() {
         <div className="flex flex-col gap-6">
           <div className="p-4 rounded-xl bg-secondary flex items-center justify-between">
             <span className="text-xs font-bold">AI Draft Verification Panel</span>
-            {!aiArtifact && (
+            {!aiArtifact && !isAnalyzing && (
               <span className="text-xs text-muted-foreground">Select a completed meeting on the Meetings tab to review.</span>
+            )}
+            {isAnalyzing && (
+              <span className="text-xs text-primary flex items-center gap-1.5 font-bold animate-pulse">
+                <i className="ti ti-loader animate-spin" />
+                AI is analyzing meeting and extracting tasks... Please wait.
+              </span>
             )}
           </div>
 
-          {aiArtifact && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {isAnalyzing && (
+            <div className="flex flex-col items-center justify-center p-20 bg-card border border-border rounded-2xl gap-4 shadow-xl">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <i className="ti ti-brain text-2xl text-primary absolute inset-0 m-auto w-fit h-fit animate-pulse" />
+              </div>
+              <div className="text-center max-w-sm">
+                <h3 className="font-bold text-base text-foreground">Analyzing Meeting Transcript</h3>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Our AI engine is currently transcribing the audio and extracting tasks, decisions, and outcomes. This will take just a moment.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {aiArtifact && !isAnalyzing && (
+            <div className="flex flex-col gap-6">
+              {/* Audio Quality Score Banner */}
+              <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                (aiArtifact.audioQualityScore || 100) < 70 
+                  ? 'bg-red-500/10 border-red-500/20 text-red-500' 
+                  : 'bg-green-500/10 border-green-500/20 text-green-500'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  <i className={`ti ${(aiArtifact.audioQualityScore || 100) < 70 ? 'ti-alert-triangle text-lg animate-bounce' : 'ti-circle-check text-lg'}`} />
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider">Audio Clarity Score: {aiArtifact.audioQualityScore || 100}%</h4>
+                    <p className="text-[10px] opacity-80 mt-0.5 font-medium">
+                      {(aiArtifact.audioQualityScore || 100) < 70 
+                        ? 'Warning: Low audio clarity/accent score detected. Please review extracted assignments and text below carefully before distributing tasks.'
+                        : 'Success: Strong audio signal and speech clarity detected. The AI has high confidence in the extracted assignments.'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase shadow-sm border shrink-0 ${
+                  (aiArtifact.audioQualityScore || 100) < 70 ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'
+                }`}>
+                  {(aiArtifact.audioQualityScore || 100) < 70 ? 'Review Needed' : 'Good Quality'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               
               {/* Left editable blocks */}
               <div className="md:col-span-2 flex flex-col gap-6">
@@ -1548,7 +1607,8 @@ export default function AdminHubDashboard() {
               </div>
 
             </div>
-          )}
+          </div>
+        )}
         </div>
       )}
 
@@ -1797,7 +1857,7 @@ export default function AdminHubDashboard() {
                   onConfirm: async () => {
                     setInviteStatus(null);
                     try {
-                      const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/invite`, {
+                      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/invite`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',

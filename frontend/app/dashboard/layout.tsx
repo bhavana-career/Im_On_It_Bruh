@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useThemeStore } from '../../store/themeStore';
 import { useDashboardStore } from '../../store/dashboardStore';
 import io from 'socket.io-client';
-
+import { API_URL } from '@/lib/config';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const { isDark, toggleTheme } = useThemeStore();
@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const fetchNotifications = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch('http://localhost:5000/api/v1/notifications', {
+      const res = await fetch('${API_URL}/api/v1/notifications', {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (res.ok) {
@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!session?.user || status !== 'authenticated') return;
 
-    const socket = io('http://localhost:5000');
+    const socket = io('${API_URL}');
 
     // Join room on connection
     socket.on('connect', () => {
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleMarkAsRead = async (id: string) => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/notifications/${id}/read`, {
+      const res = await fetch(`${API_URL}/api/v1/notifications/${id}/read`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleMarkAllRead = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch('http://localhost:5000/api/v1/notifications/read-all', {
+      const res = await fetch('${API_URL}/api/v1/notifications/read-all', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });

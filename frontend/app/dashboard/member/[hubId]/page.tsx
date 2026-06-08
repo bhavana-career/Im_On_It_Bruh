@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 
-
+import { API_URL } from '@/lib/config';
 export default function MemberHubDashboard() {
   const { data: session } = useSession();
   const { hubId } = useParams();
@@ -41,6 +41,7 @@ export default function MemberHubDashboard() {
   // Live Meeting
   const [lkToken, setLkToken] = useState<string | null>(null);
   const [lkRoom, setLkRoom] = useState<string | null>(null);
+  const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
 
   // Submission Form Modal
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -56,7 +57,7 @@ export default function MemberHubDashboard() {
   const checkMembershipStatus = async () => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/membership-status`, {
+      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/membership-status`, {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
       if (res.ok) {
@@ -78,14 +79,14 @@ export default function MemberHubDashboard() {
 
     try {
       if (activeTab === 'tasks') {
-        const res = await fetch(`http://localhost:5000/api/v1/tasks/user/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/tasks/user/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setTasks(await res.json());
       }
 
       if (activeTab === 'meetings') {
-        const res = await fetch(`http://localhost:5000/api/v1/meetings`, {
+        const res = await fetch(`${API_URL}/api/v1/meetings`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) {
@@ -95,21 +96,21 @@ export default function MemberHubDashboard() {
       }
 
       if (activeTab === 'calendar') {
-        const res = await fetch(`http://localhost:5000/api/v1/calendar/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/calendar/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setCalendarEvents(await res.json());
       }
 
       if (activeTab === 'broadcasts') {
-        const res = await fetch(`http://localhost:5000/api/v1/broadcasts/hub/${hubId}`, {
+        const res = await fetch(`${API_URL}/api/v1/broadcasts/hub/${hubId}`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setBroadcasts(await res.json());
       }
 
       if (activeTab === 'notifications') {
-        const res = await fetch(`http://localhost:5000/api/v1/notifications`, {
+        const res = await fetch(`${API_URL}/api/v1/notifications`, {
           headers: { Authorization: `Bearer ${(session as any).accessToken}` },
         });
         if (res.ok) setNotifications(await res.json());
@@ -136,7 +137,7 @@ export default function MemberHubDashboard() {
   const handleJoinMeeting = async (meetingId: string) => {
     if (!(session as any)?.accessToken) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/meetings/${meetingId}/join`, {
+      const res = await fetch(`${API_URL}/api/v1/meetings/${meetingId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       });
@@ -144,6 +145,7 @@ export default function MemberHubDashboard() {
         const data = await res.json();
         setLkToken(data.token);
         setLkRoom(data.liveKitRoomId);
+        setCurrentMeetingId(meetingId);
       }
     } catch (err) {
       console.error(err);
@@ -175,7 +177,7 @@ export default function MemberHubDashboard() {
         formData.append('attachments', selectedFile);
       }
 
-      const res = await fetch(`http://localhost:5000/api/v1/submissions/${submitTaskId}`, {
+      const res = await fetch(`${API_URL}/api/v1/submissions/${submitTaskId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${(session as any).accessToken}`,
@@ -206,7 +208,7 @@ export default function MemberHubDashboard() {
     if (!message || !(session as any)?.accessToken) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/broadcasts/${broadcastId}/reply`, {
+      const res = await fetch(`${API_URL}/api/v1/broadcasts/${broadcastId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +235,7 @@ export default function MemberHubDashboard() {
       onConfirm: async () => {
         if (!(session as any)?.accessToken || !session?.user) return;
         try {
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/remove/${(session.user as any).id}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/remove/${(session.user as any).id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -274,7 +276,7 @@ export default function MemberHubDashboard() {
           const params = new URLSearchParams(window.location.search);
           const inviteMethod = params.get('inviteMethod') || 'direct';
 
-          const res = await fetch(`http://localhost:5000/api/v1/hubs/${hubId}/join`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/join`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -374,7 +376,7 @@ export default function MemberHubDashboard() {
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 border-2 border-primary/20 flex items-center justify-center text-xl font-bold text-white shadow-md">
             {hubAvatar ? (
-              <img src={`http://localhost:5000${hubAvatar}`} alt={hubName} className="w-full h-full object-cover" />
+              <img src={`${API_URL}${hubAvatar}`} alt={hubName} className="w-full h-full object-cover" />
             ) : (
               <span>{hubName.charAt(0).toUpperCase()}</span>
             )}
@@ -415,18 +417,19 @@ export default function MemberHubDashboard() {
       {lkToken && lkRoom && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="h-14 bg-card border-b border-border px-6 flex items-center justify-between">
-            <span className="font-bold text-sm">Live Meeting Call: {lkRoom}</span>
+            <span className="font-bold text-sm">Live Meeting Call: {meetings.find((m: any) => m._id === currentMeetingId)?.title || 'Live Meeting'}</span>
             <button
               onClick={() => {
                 setLkToken(null);
                 setLkRoom(null);
+                setCurrentMeetingId(null);
               }}
               className="px-4 py-2 rounded-xl bg-secondary hover:bg-opacity-90 text-foreground font-bold text-xs cursor-pointer"
             >
               Leave Room
             </button>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative h-full">
             <LiveKitRoom
               video={true}
               audio={true}

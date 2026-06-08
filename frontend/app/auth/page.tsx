@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useThemeStore } from '../../store/themeStore';
+import { API_URL } from '@/lib/config';
 
 export default function AuthPage() {
   const { isDark } = useThemeStore();
@@ -27,8 +28,8 @@ export default function AuthPage() {
     }
   }, []);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!email) return;
 
     setLoading(true);
@@ -36,7 +37,7 @@ export default function AuthPage() {
     setMessage('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/v1/auth/otp', {
+      const response = await fetch(`${API_URL}/api/v1/auth/otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -231,6 +232,29 @@ export default function AuthPage() {
             >
               {loading ? <i className="ti ti-loader animate-spin" /> : 'Verify and Log in'}
             </button>
+
+            {/* Resend Code Button & Hint */}
+            <div className="flex flex-col gap-3 mt-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Didn't receive the code?</span>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleSendOtp()}
+                  className="text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <i className="ti ti-refresh" />
+                  Resend Code
+                </button>
+              </div>
+              
+              <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-xs text-yellow-600/90 dark:text-yellow-400/90 flex items-start gap-2 leading-relaxed">
+                <i className="ti ti-info-circle text-sm mt-0.5 shrink-0" />
+                <span>
+                  <strong>Hint:</strong> Since this is a new application, the verification email might be in your <strong>Spam</strong> or <strong>Junk</strong> folder. Please check there if you don't see it in your inbox.
+                </span>
+              </div>
+            </div>
 
             <button
               type="button"
