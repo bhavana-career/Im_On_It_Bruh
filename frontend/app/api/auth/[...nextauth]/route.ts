@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         
         try {
           // Post to backend verify route
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/auth/verify`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/api/v1/auth/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -59,7 +59,7 @@ export const authOptions: NextAuthOptions = {
       // If logging in via Google OAuth, fetch/register with the backend
       if (account && account.provider === 'google') {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/auth/google`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/api/v1/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
