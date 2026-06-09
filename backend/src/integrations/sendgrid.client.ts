@@ -102,19 +102,28 @@ export class SendGridClient {
    * Generates email template HTML.
    */
   getOtpTemplate(otp: string): string {
+    // Professional, accessible, mobile-friendly OTP template
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+      <div style="font-family: Arial, sans-serif; max-width:600px;margin:0 auto;padding:24px;color:#0f172a;">
+        <div style="text-align:center;margin-bottom:18px;">
+          <h1 style="margin:0;color:#E85D04;font-size:20px;">I'm On It Bruh</h1>
+          <p style="margin:6px 0 0;font-size:13px;color:#475569;">Execution &amp; Accountability Platform</p>
         </div>
-        <p>Hello,</p>
-        <p>Use the following 6-digit One-Time Password (OTP) to log in to your account. This code is valid for 10 minutes:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1a202c; background-color: #f7fafc; padding: 10px 20px; border-radius: 4px; border: 1px solid #e2e8f0;">${otp}</span>
+
+        <div style="background:#ffffff;border:1px solid #e6edf3;border-radius:8px;padding:18px;">
+          <p style="font-size:14px;color:#0f172a;margin:0 0 12px;">Hello,</p>
+          <p style="font-size:14px;color:#334155;margin:0 0 18px;">Use the verification code below to sign in to your I'm On It Bruh account. This code will expire in <strong>10 minutes</strong>.</p>
+
+          <div style="text-align:center;margin:18px 0;">
+            <span style="display:inline-block;font-size:28px;letter-spacing:6px;padding:12px 18px;border-radius:6px;background:#f8fafc;border:1px solid #e6edf3;font-weight:700;">${otp}</span>
+          </div>
+
+          <p style="font-size:13px;color:#6b7280;margin:0 0 10px;">If you did not request this code, please ignore this email or contact <a href="mailto:support@imonitbruh.app">support@imonitbruh.app</a>.</p>
+
+          <hr style="border:0;border-top:1px solid #eef2f7;margin:16px 0;" />
+
+          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">I'm On It Bruh &copy; ${new Date().getFullYear()}. This message was sent to you for account verification.</p>
         </div>
-        <p>If you did not request this, you can safely ignore this email.</p>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #a0aec0; text-align: center;">I'm On It Bruh &copy; 2026. Execution & Accountability Platform.</p>
       </div>
     `;
   }
@@ -163,17 +172,15 @@ export class SendGridClient {
           <p style="font-size: 14px; font-style: italic; color: #8b949e; margin-top: 0; margin-bottom: 20px;">
             "We would love to have you as a key part of our community. Join our team space to host live meeting rooms, track task dependencies, and collaborate on deliverables."
           </p>
-          <a href="${inviteLink}" style="display: inline-block; background-color: #ff4d00; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(255, 77, 0, 0.25);">
+          <a href="${inviteLink}" style="display: inline-block; background-color: #ff4d00; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
             Join Team
           </a>
         </div>
         <p style="font-size: 13px; line-height: 1.5; color: #8b949e; margin-bottom: 0;">
-          <em>Note:</em> After clicking the button, you will be prompted to log in or create an account. Once authenticated, your workspace request will be marked as pending until approved by the administrator.
+          <em>Note:</em> After clicking the button, you will be prompted to log in or create an account. Once authenticated, your workspace request will be marked as pending until approved by the workspace admin.
         </p>
         <hr style="border: 0; border-top: 1px solid #21262d; margin: 24px 0;" />
-        <p style="font-size: 11px; color: #8b949e; text-align: center; margin: 0;">
-          I'm On It Bruh &copy; 2026. Execution & Accountability Platform.
-        </p>
+        <p style="font-size: 11px; color: #8b949e; text-align: center; margin: 0;">I'm On It Bruh &copy; ${new Date().getFullYear()}. Execution &amp; Accountability Platform.</p>
       </div>
     `;
   }
@@ -217,7 +224,7 @@ export class SendGridClient {
           <a href="${dashboardUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">View in Dashboard</a>
         </div>
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; ${new Date().getFullYear()}. Execution &amp; Accountability Platform.</p>
       </div>
     `;
   }
@@ -231,37 +238,25 @@ export class SendGridClient {
   ): string {
     const isUrgent = timeLabel === '15 minutes';
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
+      <div style="font-family: Arial, sans-serif; max-width:640px;margin:0 auto;padding:20px;">
+        <div style="text-align:center;">
+          <h2 style="margin:0;color:#0f172a;">Meeting Reminder</h2>
+          <p style="margin:6px 0 14px;color:#475569;">${hubName}</p>
         </div>
-        <div style="text-align: center; background-color: ${isUrgent ? '#fff7ed' : '#f7fafc'}; border: 1px solid ${isUrgent ? '#fed7aa' : '#e2e8f0'}; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
-          <div style="font-size: 36px; margin-bottom: 8px;">${isUrgent ? '⏰' : '📅'}</div>
-          <h3 style="color: #1a202c; margin: 0 0 8px 0; font-size: 18px;">${meetingTitle}</h3>
-          <p style="color: ${isUrgent ? '#c2410c' : '#4a5568'}; font-weight: bold; font-size: 15px; margin: 0;">
-            Starts in <strong>${timeLabel}</strong>
-          </p>
-          <p style="color: #718096; font-size: 13px; margin: 8px 0 0 0;">Workspace: ${hubName}</p>
+
+        <div style="background:#fff;border:1px solid #e6edf3;border-radius:8px;padding:18px;">
+          <h3 style="margin:0 0 10px;font-size:16px;color:#0f172a;">${meetingTitle}</h3>
+          <p style="margin:0 0 12px;color:#334155;">This meeting is starting <strong>${timeLabel}</strong>.</p>
+          <p style="margin:0 0 14px;color:#6b7280;">Click the button below to join the meeting or view details in the dashboard.</p>
+
+          <div style="text-align:center;margin:16px 0;">
+            <a href="${joinUrl}" style="display:inline-block;background:#E85D04;color:white;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600;">View Meeting / Join</a>
+          </div>
+
+          <p style="font-size:12px;color:#9ca3af;margin:0;">You may also add this to your calendar using the attached .ics file.</p>
         </div>
-        <table style="width: 100%; border-collapse: separate; border-spacing: 12px;">
-          <tr>
-            <td style="width: 50%; text-align: center;">
-              <a href="${joinUrl}" style="display: block; background-color: #E85D04; color: white; padding: 14px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
-                🚀 Join Meeting
-              </a>
-            </td>
-            <td style="width: 50%; text-align: center;">
-              <a href="${messageAdminUrl}" style="display: block; background-color: #f7fafc; color: #4a5568; padding: 14px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; border: 1px solid #e2e8f0;">
-                💬 Message Admin
-              </a>
-            </td>
-          </tr>
-        </table>
-        <p style="color: #a0aec0; font-size: 12px; text-align: center; margin-top: 16px;">
-          Can't attend? Click "Message Admin" to notify the meeting host privately.
-        </p>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+
+        <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:12px;">If you have any questions, contact <a href="mailto:support@imonitbruh.app">support@imonitbruh.app</a>.</p>
       </div>
     `;
   }
@@ -287,7 +282,7 @@ export class SendGridClient {
           <h2 style="color: #E85D04; margin: 0;">I'm On It Bruh</h2>
         </div>
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-          <span style="font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; background-color: ${u.bg}; color: ${u.color}; border: 1px solid ${u.border}; text-transform: uppercase; letter-spacing: 0.5px;">${u.label}</span>
+          <span style="font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; background-color: ${u.bg}; color: ${u.color}; border: 1px solid ${u.border}; text-transform: uppercase; font-size: 12px;">${u.label}</span>
           <span style="font-size: 12px; color: #718096;">from ${hubName}</span>
         </div>
         <p style="color: #4a5568; font-size: 14px; margin: 0 0 8px 0;">
@@ -298,13 +293,11 @@ export class SendGridClient {
           <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0;">${broadcastBody}</p>
         </div>
         <div style="text-align: center; margin-top: 24px;">
-          <a href="${replyUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Reply Privately to Admin</a>
+          <a href="${replyUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Reply Privately</a>
         </div>
-        <p style="color: #a0aec0; font-size: 12px; text-align: center; margin-top: 12px;">
-          Your reply will only be visible to ${adminName}.
-        </p>
+        <p style="color: #a0aec0; font-size: 12px; text-align: center; margin-top: 12px;">Your reply will only be visible to ${adminName}.</p>
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; ${new Date().getFullYear()}. Execution &amp; Accountability Platform.</p>
       </div>
     `;
   }
@@ -333,7 +326,7 @@ export class SendGridClient {
           <a href="${viewRepliesUrl}" style="background-color: #E85D04; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">View All Replies</a>
         </div>
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; 2026. Execution &amp; Accountability Platform.</p>
+        <p style="font-size: 12px; color: #a0aec0; text-align: center; margin: 0;">I'm On It Bruh &copy; ${new Date().getFullYear()}. Execution &amp; Accountability Platform.</p>
       </div>
     `;
   }
