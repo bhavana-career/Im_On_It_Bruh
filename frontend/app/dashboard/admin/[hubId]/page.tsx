@@ -15,6 +15,7 @@ export default function AdminHubDashboard() {
   const [activeTab, setActiveTab] = useState<'meetings' | 'review' | 'tasks' | 'submissions' | 'broadcasts' | 'members' | 'analytics'>('meetings');
   const [hubName, setHubName] = useState('Hub Admin Panel');
   const [hubAvatar, setHubAvatar] = useState<string | null>(null);
+  const [hubPromoCode, setHubPromoCode] = useState<string | null>(null);
 
   // Custom scheduler states
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
@@ -211,6 +212,7 @@ export default function AdminHubDashboard() {
           setHubDescription(currentHub.description || '');
           setEditHubName(currentHub.name);
           setEditHubDesc(currentHub.description || '');
+          setHubPromoCode(currentHub.promoCode || null);
         }
       }
     } catch (err) {
@@ -845,6 +847,65 @@ export default function AdminHubDashboard() {
           <i className="ti ti-logout" /> Leave Group
         </button>
       </div>
+
+      {/* Invite Members Card */}
+      {(() => {
+        const frontendUrl = typeof window !== 'undefined' ? window.location.origin : 'https://im-on-it-bruh.vercel.app';
+        const inviteLink = `${frontendUrl}/dashboard/member/${hubId}?inviteMethod=link`;
+        const whatsappMsg = encodeURIComponent(
+          `Hey! Join *${hubName}* on I'm On It Bruh — an AI-powered meeting & task workspace.\n\n🔗 Click to join: ${inviteLink}\n\nOr enter promo code *${hubPromoCode || ''}* on the dashboard after logging in.`
+        );
+        return (
+          <div className="p-4 rounded-2xl bg-card border border-border flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[180px]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Promo Code</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="font-mono text-xl font-extrabold tracking-[0.2em] text-primary cursor-pointer select-all"
+                  title="Click to copy promo code"
+                  onClick={() => { navigator.clipboard.writeText(hubPromoCode || ''); }}
+                >
+                  {hubPromoCode || '—'}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(hubPromoCode || ''); }}
+                  className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer text-xs"
+                  title="Copy promo code"
+                >
+                  <i className="ti ti-copy" />
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Members enter this code on the dashboard to join</p>
+            </div>
+
+            <div className="flex-1 min-w-[200px]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Invite Link</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground truncate max-w-[180px]" title={inviteLink}>
+                  {inviteLink.replace('https://', '')}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(inviteLink); }}
+                  className="p-1 rounded bg-secondary hover:bg-opacity-80 text-muted-foreground hover:text-foreground transition-all cursor-pointer text-xs flex-shrink-0"
+                  title="Copy invite link"
+                >
+                  <i className="ti ti-copy" />
+                </button>
+              </div>
+            </div>
+
+            <a
+              href={`https://wa.me/?text=${whatsappMsg}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-xs transition-all shadow-sm flex-shrink-0"
+            >
+              <i className="ti ti-brand-whatsapp text-base" />
+              Share on WhatsApp
+            </a>
+          </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-px overflow-x-auto">

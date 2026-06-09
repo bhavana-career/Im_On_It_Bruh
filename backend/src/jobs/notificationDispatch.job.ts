@@ -22,9 +22,23 @@ export interface NotificationJobData {
     whatsapp: boolean;
   };
   metadata?: {
+    // Existing
     adminName?: string;
     hubName?: string;
     inviteLink?: string;
+    // Meeting notifications
+    meetingTitle?: string;
+    scheduledAt?: string;
+    description?: string;
+    hubId?: string;
+    // Broadcast notifications
+    broadcastTitle?: string;
+    broadcastBody?: string;
+    urgency?: string;
+    broadcastId?: string;
+    // Broadcast reply
+    memberName?: string;
+    replyMessage?: string;
   };
 }
 
@@ -49,7 +63,7 @@ notificationDispatchQueue.process(async (job) => {
         isRead: false,
       });
 
-      // Emit real-time notification via Socket.io (handled globally in server.io context)
+      // Emit real-time notification via Socket.io
       if ((global as any).io) {
         (global as any).io.to(userId).emit('notification', { title, message, type, relatedEntity });
       }
@@ -57,16 +71,70 @@ notificationDispatchQueue.process(async (job) => {
 
     // 2. Email (SendGrid)
     if (channels.email && user.notificationPreferences?.email) {
+      const frontendUrl = process.env.NEXTAUTH_URL || 'https://im-on-it-bruh.vercel.app';
       let emailSubject = title;
       let bodyHtml = `<div style="font-family: Arial; padding: 20px;"><h3>${title}</h3><p>${message}</p></div>`;
 
       if (type === 'TASK_ASSIGNED') {
-        bodyHtml = sendgrid.getTaskAssignedTemplate(title, message, new Date(), 'medium', 'I\'m On It Bruh');
+        bodyHtml = sendgrid.getTaskAssignedTemplate(title, message, new Date(), 'medium', metadata?.hubName || "I'm On It Bruh");
+
       } else if (type === 'HUB_INVITATION' && metadata) {
         bodyHtml = sendgrid.getHackerEarthInviteTemplate(
           metadata.adminName || 'Admin',
           metadata.hubName || 'Workspace',
-          metadata.inviteLink || 'http://localhost:3000/dashboard'
+          metadata.inviteLink || `${frontendUrl}/dashboard`
+        );
+
+      } else if (type === 'MEETING_SCHEDULED' && metadata) {
+        emailSubject = `📅 New Meeting: ${metadata.meetingTitle || title}`;
+        bodyHtml = sendgrid.getMeetingScheduledTemplate(
+          metadata.meetingTitle || title,
+          metadata.hubName || 'Your Hub',
+          metadata.scheduledAt || '',
+          metadata.description || '',
+          `${frontendUrl}/dashboard`
+        );
+
+      } else if (
+        (type === 'MEETING_REMINDER_15M' || type === 'MEETING_REMINDER_30M' || type === 'MEETING_REMINDER_24H') &&
+        metadata
+      ) {
+        const timeLabel =
+          type === 'MEETING_REMINDER_15M' ? '15 minutes' :
+          type === 'MEETING_REMINDER_30M' ? '30 minutes' : 'tomorrow';
+        emailSubject = `⏰ Reminder: ${metadata.meetingTitle || title} starts in ${timeLabel}`;
+        bodyHtml = sendgrid.getMeetingReminderTemplate(
+          metadata.meetingTitle || title,
+          metadata.hubName || 'Your Hub',
+          timeLabel,
+          `${frontendUrl}/dashboard`,
+          metadata.hubId
+            ? `${frontendUrl}/dashboard/member/${metadata.hubId}?tab=broadcasts`
+            : `${frontendUrl}/dashboard`
+        );
+
+      } else if (type === 'BROADCAST_SENT' && metadata) {
+        emailSubject = `📢 ${metadata.hubName || 'Workspace'} Announcement: ${metadata.broadcastTitle || title}`;
+        bodyHtml = sendgrid.getBroadcastTemplate(
+          metadata.adminName || 'Admin',
+          metadata.hubName || 'Your Hub',
+          metadata.broadcastTitle || title,
+          metadata.broadcastBody || message,
+          metadata.urgency || 'medium',
+          metadata.hubId && metadata.broadcastId
+            ? `${frontendUrl}/dashboard/member/${metadata.hubId}?tab=broadcasts&replyTo=${metadata.broadcastId}`
+            : `${frontendUrl}/dashboard`
+        );
+
+      } else if (type === 'BROADCAST_REPLY' && metadata) {
+        emailSubject = `💬 ${metadata.memberName || 'A member'} replied to your announcement`;
+        bodyHtml = sendgrid.getBroadcastReplyTemplate(
+          metadata.memberName || 'A member',
+          metadata.broadcastTitle || title,
+          metadata.replyMessage || message,
+          metadata.hubId
+            ? `${frontendUrl}/dashboard/admin/${metadata.hubId}?tab=broadcasts`
+            : `${frontendUrl}/dashboard`
         );
       }
 

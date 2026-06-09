@@ -1,6 +1,7 @@
 import { reminderSchedulerQueue, notificationDispatchQueue } from './queue';
 import Meeting from '../models/Meeting';
 import Task from '../models/Task';
+import Hub from '../models/Hub';
 import HubMembership from '../models/HubMembership';
 import Notification from '../models/Notification';
 
@@ -43,6 +44,10 @@ reminderSchedulerQueue.process(async (job) => {
         });
 
         if (!alreadySent) {
+          // Fetch hub name for email template
+          const hub = await Hub.findById(meeting.hubId);
+          const hubName = hub?.name || 'Your Hub';
+
           // Find all hub members
           const members = await HubMembership.find({ hubId: meeting.hubId, status: 'active' });
           for (const member of members) {
@@ -51,14 +56,12 @@ reminderSchedulerQueue.process(async (job) => {
               type: reminderType,
               title: `Meeting Reminder: ${meeting.title}`,
               message: reminderMsg,
-              relatedEntity: {
-                type: 'Meeting',
-                id: meeting._id.toString(),
-              },
-              channels: {
-                platform: true,
-                email: true,
-                whatsapp: false,
+              relatedEntity: { type: 'Meeting', id: meeting._id.toString() },
+              channels: { platform: true, email: true, whatsapp: false },
+              metadata: {
+                meetingTitle: meeting.title,
+                hubName,
+                hubId: meeting.hubId.toString(),
               },
             });
           }

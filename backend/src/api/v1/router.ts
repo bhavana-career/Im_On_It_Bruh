@@ -144,6 +144,18 @@ router.get('/hubs/member', authMiddleware, async (req: AuthenticatedRequest, res
   }
 });
 
+// Join hub by promo code — must be before /:hubId routes
+router.post('/hubs/join-by-promo', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { promoCode } = req.body;
+  if (!promoCode) return res.status(400).json({ error: 'Promo code is required' });
+  try {
+    const membership = await HubService.joinByPromoCode(req.user!.id, promoCode);
+    res.json(membership);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.post('/hubs/:hubId/join', authMiddleware, async (req: AuthenticatedRequest, res) => {
   try {
     const { inviteMethod } = req.body;

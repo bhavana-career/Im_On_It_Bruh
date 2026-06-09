@@ -3,16 +3,40 @@ import HubMembership from '../models/HubMembership';
 import User from '../models/User';
 import { notificationDispatchQueue } from '../jobs/queue';
 
+/**
+ * Generates a unique 6-character alphanumeric promo code.
+ * Uses unambiguous characters (no 0/O, 1/I) for easy readability.
+ */
+const generatePromoCode = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+};
+
 export class HubService {
   /**
    * Create a new hub. Creator is automatically admin.
    */
   async createHub(creatorId: string, name: string, description: string, visibility: 'public' | 'private', profileImageUrl?: string) {
+    // Generate unique promo code with collision retry
+    let promoCode = '';
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = generatePromoCode();
+      const exists = await Hub.findOne({ promoCode: candidate });
+      if (!exists) { promoCode = candidate; break; }
+      attempts++;
+    }
+
     const hub = await Hub.create({
       name,
       description,
       profileImageUrl,
       visibility,
+      promoCode,
       createdBy: creatorId,
     });
 
@@ -102,7 +126,7 @@ export class HubService {
       throw new Error('Hub not found');
     }
 
-    const isApprovalRequired = hub.visibility === 'private' || ['link', 'code', 'email'].includes(inviteMethod);
+    const isApprovalRequired = hub.visibility === 'private';
 
     // Check if membership already exists
     const existingMembership = await HubMembership.findOne({ hubId, userId });
@@ -235,7 +259,8 @@ export class HubService {
     // Fetch admin details for custom email naming
     const admin = await User.findById(adminId);
     const adminName = admin?.profileName || 'An Administrator';
-    const inviteLink = `http://localhost:3000/auth?redirect=/dashboard/member/${hub._id}`;
+    const frontendUrl = process.env.NEXTAUTH_URL || 'https://im-on-it-bruh.vercel.app';
+    const inviteLink = `${frontendUrl}/auth?redirect=/dashboard/member/${hub._id}`;
 
     // Send invitation email with HackerEarth custom templates
     await notificationDispatchQueue.add({
@@ -288,7 +313,8 @@ export class HubService {
 
     const admin = await User.findById(adminId);
     const adminName = admin?.profileName || 'An Administrator';
-    const inviteLink = `http://localhost:3000/auth?redirect=/dashboard/member/${hub._id}`;
+    const frontendUrl = process.env.NEXTAUTH_URL || 'https://im-on-it-bruh.vercel.app';
+    const inviteLink = `${frontendUrl}/auth?redirect=/dashboard/member/${hub._id}`;
 
     await notificationDispatchQueue.add({
       userId: user._id.toString(),
@@ -419,6 +445,19 @@ export class HubService {
 
     await hub.save();
     return hub;
+  }
+  /**
+   * Find a hub by promo code and join it.
+   * Public hubs: auto-join immediately.
+   * Private hubs: creates a pending request for admin approval.
+   */
+  async joinByPromoCode(userId: string, promoCode: string) {
+    const hub = await Hub.findOne({ promoCode: promoCode.toUpperCase().trim() });
+    if (!hub || hub.isDeleted) {
+      throw new Error('Invalid promo code. Please check and try again.');
+    }
+
+    return this.joinHub(userId, hub._id.toString(), 'code');
   }
 }
 

@@ -50,6 +50,11 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Promo code join states
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [promoStatus, setPromoStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
   // Custom Member Confirmation Modal state
   const [memberConfirmModal, setMemberConfirmModal] = useState<{
     isOpen: boolean;
@@ -167,6 +172,38 @@ export default function DashboardHome() {
     });
   };
 
+  const handleJoinByPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoCodeInput.trim() || !(session as any)?.accessToken) return;
+    setPromoLoading(true);
+    setPromoStatus(null);
+    try {
+      const res = await fetch(`${API_URL}/api/v1/hubs/join-by-promo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(session as any).accessToken}`,
+        },
+        body: JSON.stringify({ promoCode: promoCodeInput.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const statusMsg = data.status === 'active'
+          ? '🎉 You joined the hub successfully!'
+          : '✅ Join request sent! Waiting for admin approval.';
+        setPromoStatus({ type: 'success', text: statusMsg });
+        setPromoCodeInput('');
+        setTimeout(() => fetchData(), 1500);
+      } else {
+        setPromoStatus({ type: 'error', text: data.error || 'Invalid promo code.' });
+      }
+    } catch {
+      setPromoStatus({ type: 'error', text: 'Connection error. Please try again.' });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8">
       
@@ -183,6 +220,38 @@ export default function DashboardHome() {
           <i className="ti ti-square-rounded-plus text-base" />
           Create New Hub
         </button>
+      </div>
+
+      {/* Join by Promo Code */}
+      <div className="p-5 rounded-2xl bg-card border border-border flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex-1">
+          <h3 className="text-sm font-bold">🔑 Join by Promo Code</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Enter a 6-character hub code shared by an admin</p>
+        </div>
+        <form onSubmit={handleJoinByPromo} className="flex items-center gap-2">
+          <input
+            type="text"
+            maxLength={6}
+            value={promoCodeInput}
+            onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+            placeholder="AB12CD"
+            className="w-28 p-2.5 rounded-xl border border-border bg-muted font-mono font-bold text-center tracking-widest uppercase text-sm focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+          />
+          <button
+            type="submit"
+            disabled={promoLoading || promoCodeInput.length < 3}
+            className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:opacity-90 transition-all cursor-pointer shadow-md disabled:opacity-50"
+          >
+            {promoLoading ? <i className="ti ti-loader animate-spin" /> : 'Join'}
+          </button>
+        </form>
+        {promoStatus && (
+          <p className={`text-xs font-semibold ${
+            promoStatus.type === 'success' ? 'text-green-500' : 'text-red-500'
+          }`}>
+            {promoStatus.text}
+          </p>
+        )}
       </div>
 
       {/* Hub Creation Modal */}

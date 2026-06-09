@@ -1,6 +1,7 @@
 import Meeting from '../models/Meeting';
 import MeetingParticipant from '../models/MeetingParticipant';
 import HubMembership from '../models/HubMembership';
+import Hub from '../models/Hub';
 import User from '../models/User';
 import { LiveKitClient } from '../integrations/livekit.client';
 import { GoogleCalendarClient } from '../integrations/googleCalendar.client';
@@ -65,6 +66,14 @@ export class MeetingService {
       const creator = await User.findById(creatorId);
       const creatorName = creator?.profileName || 'Admin';
 
+      // Fetch hub name for email templates
+      const hub = await Hub.findById(hubId);
+      const hubName = hub?.name || 'Your Hub';
+      const scheduledAtStr = new Date(scheduledAt).toLocaleString('en-IN', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      });
+
       const now = new Date();
       const diffMs = new Date(scheduledAt).getTime() - now.getTime();
       const diffMins = Math.floor(diffMs / 60000);
@@ -93,14 +102,14 @@ export class MeetingService {
           type: 'MEETING_SCHEDULED',
           title: 'New Meeting Scheduled',
           message: `A new meeting "${title}" has been scheduled by ${creatorName} for ${new Date(scheduledAt).toLocaleString()}.`,
-          relatedEntity: {
-            type: 'Meeting',
-            id: meeting._id.toString(),
-          },
-          channels: {
-            platform: true,
-            email: true,
-            whatsapp: true,
+          relatedEntity: { type: 'Meeting', id: meeting._id.toString() },
+          channels: { platform: true, email: true, whatsapp: true },
+          metadata: {
+            meetingTitle: title,
+            hubName,
+            scheduledAt: scheduledAtStr,
+            description,
+            hubId: hubId.toString(),
           },
         });
 
@@ -111,14 +120,12 @@ export class MeetingService {
             type: reminderType,
             title: `Meeting Reminder: ${title}`,
             message: reminderMsg,
-            relatedEntity: {
-              type: 'Meeting',
-              id: meeting._id.toString(),
-            },
-            channels: {
-              platform: true,
-              email: true,
-              whatsapp: true,
+            relatedEntity: { type: 'Meeting', id: meeting._id.toString() },
+            channels: { platform: true, email: true, whatsapp: true },
+            metadata: {
+              meetingTitle: title,
+              hubName,
+              hubId: hubId.toString(),
             },
           });
         }
