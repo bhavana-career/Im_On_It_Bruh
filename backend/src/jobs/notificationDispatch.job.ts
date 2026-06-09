@@ -70,7 +70,8 @@ notificationDispatchQueue.process(async (job) => {
     }
 
     // 2. Email (SendGrid)
-    if (channels.email && user.notificationPreferences?.email) {
+    // Default to sending email unless user has explicitly disabled it (notificationPreferences.email !== false)
+    if (channels.email && user.notificationPreferences?.email !== false) {
       const frontendUrl = process.env.NEXTAUTH_URL || 'https://im-on-it-bruh.vercel.app';
       let emailSubject = title;
       let bodyHtml = `<div style="font-family: Arial; padding: 20px;"><h3>${title}</h3><p>${message}</p></div>`;

@@ -1,7 +1,9 @@
 import sgMail from '@sendgrid/mail';
 
 const apiKey = process.env.SENDGRID_API_KEY || '';
-const emailFrom = process.env.EMAIL_FROM || 'imonit.notifications@gmail.com';
+// EMAIL_FROM must be a verified sender in SendGrid (either domain or single sender)
+// Gmail addresses won't work unless verified in SendGrid dashboard
+const emailFrom = process.env.EMAIL_FROM || 'noreply@imonitbruh.app';
 
 if (apiKey && apiKey.startsWith('SG.')) {
   sgMail.setApiKey(apiKey);
@@ -31,8 +33,10 @@ export class SendGridClient {
       await sgMail.send(msg);
       console.log(`[SendGridClient] Email sent successfully to ${to}`);
       return true;
-    } catch (error) {
-      console.error('[SendGridClient] SendGrid failed to send email:', error);
+    } catch (error: any) {
+      // Log the full SendGrid error body for debugging
+      const errBody = error?.response?.body ? JSON.stringify(error.response.body) : error?.message;
+      console.error('[SendGridClient] SendGrid failed to send email. Details:', errBody);
       return false;
     }
   }

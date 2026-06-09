@@ -94,11 +94,12 @@ export class MeetingService {
       }
 
       for (const m of memberships) {
-        if (m.userId.toString() === creatorId) continue;
+        const memberUserId = (m.userId as any)?._id?.toString() || m.userId?.toString();
+        if (!memberUserId || memberUserId === creatorId) continue;
 
         // Send creation notification
         await notificationDispatchQueue.add({
-          userId: m.userId.toString(),
+          userId: memberUserId,
           type: 'MEETING_SCHEDULED',
           title: 'New Meeting Scheduled',
           message: `A new meeting "${title}" has been scheduled by ${creatorName} for ${new Date(scheduledAt).toLocaleString()}.`,
@@ -116,7 +117,7 @@ export class MeetingService {
         // If meeting starts in 30 mins or less, send an immediate urgent reminder
         if (isStartingSoon && reminderType && reminderMsg) {
           await notificationDispatchQueue.add({
-            userId: m.userId.toString(),
+            userId: memberUserId,
             type: reminderType,
             title: `Meeting Reminder: ${title}`,
             message: reminderMsg,
