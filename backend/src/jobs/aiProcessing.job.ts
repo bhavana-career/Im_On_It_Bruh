@@ -76,25 +76,16 @@ aiProcessingQueue.process(async (job) => {
     
     // Fetch actual audio buffer if recordingUrl is present
     if (meeting.recordingUrl) {
-      try {
-        const audioBuffer = await getAudioBuffer(meeting.recordingUrl);
-        const mimeType = meeting.recordingUrl.endsWith('.webm') ? 'audio/webm' : 'audio/wav';
-        console.log(`[AIProcessingJob] Transcribing actual audio file, size: ${audioBuffer.length} bytes, type: ${mimeType}`);
-        rawTranscript = await gemini.transcribeAudio(audioBuffer, mimeType);
-      } catch (err) {
-        console.error('[AIProcessingJob] Failed to download/transcribe actual audio, falling back to mock:', err);
-      }
+      const audioBuffer = await getAudioBuffer(meeting.recordingUrl);
+      const mimeType = meeting.recordingUrl.endsWith('.webm') ? 'audio/webm' : 'audio/wav';
+      console.log(`[AIProcessingJob] Transcribing actual audio file, size: ${audioBuffer.length} bytes, type: ${mimeType}`);
+      rawTranscript = await gemini.transcribeAudio(audioBuffer, mimeType);
+    } else {
+      throw new Error('Meeting recording URL is missing. Cannot process meeting without audio.');
     }
 
     if (!rawTranscript) {
-      // Mock transcript generation
-      rawTranscript = `
-        Meeting: CatchUp App Router Setup
-        Admin (Host): Let's start the meeting. We need to deploy the app.
-        Developer: I will code the database schemas in Mongoose. I can finish that by Thursday.
-        Designer: The landing page needs Framer Motion animations. I will finish the animations by tomorrow.
-        Admin (Host): Perfect, so Designer does landing page by tomorrow, then Developer integrates Mongoose backend by Thursday. Let's make sure the design matches dark mode specifications.
-      `;
+      throw new Error('Transcription produced empty result. Cannot analyze meeting without transcript.');
     }
 
     // 4. Task/Dependency/Outcomes Extraction

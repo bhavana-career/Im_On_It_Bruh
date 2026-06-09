@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = process.env.GOOGLE_API_KEY || '';
 const isProd = process.env.NODE_ENV === 'production';
+const allowMockAI = process.env.ALLOW_MOCK_AI === 'true';
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export interface GeminiAnalysisOutput {
@@ -27,11 +28,13 @@ export class GeminiClient {
     if (!apiKey) {
       const msg = '[GeminiClient] GOOGLE_API_KEY is not defined.';
       if (isProd) {
-        // In production fail-fast and provide structured logging
         console.error(`${msg} Production requires a valid GOOGLE_API_KEY for Gemini generative & STT integrations.`);
         throw new Error('Gemini integration unavailable: GOOGLE_API_KEY missing in production');
+      } else if (!allowMockAI) {
+        console.error(`${msg} Development mode requires either a valid GOOGLE_API_KEY or ALLOW_MOCK_AI=true to permit mock data.`);
+        throw new Error('Gemini integration unavailable: GOOGLE_API_KEY missing and ALLOW_MOCK_AI not enabled');
       } else {
-        console.warn(`${msg} Running in non-production mode — mock outputs will be used for transcription and analysis.`);
+        console.warn(`${msg} ALLOW_MOCK_AI=true — mock outputs will be used for development purposes only.`);
       }
     }
   }
@@ -40,20 +43,27 @@ export class GeminiClient {
    * Transcribe audio buffer using Gemini 1.5 Pro.
    */
   async transcribeAudio(audioBuffer: Buffer, mimeType: string): Promise<string> {
-    const mockTranscript = 'Mock Transcript: [Visualizing mockup meeting transcription.]\nAdmin: Hello team, let\'s launch the CatchUp dashboard.\nDeveloper: Yes, I am working on the backend schem[...]';
-
-    // Development / Test: allow mock fallback for convenience
-    if (!isProd) {
-      if (!apiKey || apiKey.startsWith('AQ.')) {
-        console.warn('[GeminiClient] Using mock transcript because GOOGLE_API_KEY is missing or appears to be a placeholder in non-production environment.');
+    // Validate API key availability
+    if (!apiKey) {
+      const msg = '[GeminiClient] GOOGLE_API_KEY is missing. Cannot transcribe audio.';
+      if (allowMockAI && !isProd) {
+        const mockTranscript = 'Mock Transcript: [Visualizing mockup meeting transcription.]\nAdmin: Hello team, let\'s launch the CatchUp dashboard.\nDeveloper: Yes, I am working on the backend schem[...]';
+        console.warn(`${msg} ALLOW_MOCK_AI=true — returning mock transcript for development only.`);
         return mockTranscript;
       }
+      console.error(msg);
+      throw new Error('Gemini transcription failed: GOOGLE_API_KEY missing');
     }
 
-    // Production: do not return mock data. Ensure apiKey exists (constructor already throws) and attempt real transcription.
-    if (isProd && !apiKey) {
-      console.error('[GeminiClient] Missing GOOGLE_API_KEY in production. Cannot transcribe audio.');
-      throw new Error('GOOGLE_API_KEY missing in production');
+    if (apiKey.startsWith('AQ.')) {
+      const msg = '[GeminiClient] GOOGLE_API_KEY appears to be a placeholder (AQ.*). Cannot transcribe audio.';
+      if (allowMockAI && !isProd) {
+        const mockTranscript = 'Mock Transcript: [Visualizing mockup meeting transcription.]\nAdmin: Hello team, let\'s launch the CatchUp dashboard.\nDeveloper: Yes, I am working on the backend schem[...]';
+        console.warn(`${msg} ALLOW_MOCK_AI=true — returning mock transcript for development only.`);
+        return mockTranscript;
+      }
+      console.error(msg);
+      throw new Error('Gemini transcription failed: GOOGLE_API_KEY is not configured');
     }
 
     try {
@@ -70,16 +80,16 @@ export class GeminiClient {
 
       const result = await model.generateContent([prompt, audioPart]);
       const response = await result.response;
-      return response.text() || mockTranscript;
+      const text = response.text();
+      
+      if (!text) {
+        throw new Error('Gemini API returned empty transcription response');
+      }
+      
+      return text;
     } catch (error) {
       console.error('[GeminiClient] Speech-to-Text transcription failed:', error);
-      // In non-production we can fallback to mock for developer productivity
-      if (!isProd) {
-        console.warn('[GeminiClient] Falling back to mock transcript in non-production environment.');
-        return mockTranscript;
-      }
-      // In production surface the error instead of returning mock data
-      throw new Error('Gemini transcription failed in production: ' + (error as any)?.message || String(error));
+      throw new Error('Gemini transcription failed: ' + (error as any)?.message || String(error));
     }
   }
 
@@ -90,41 +100,69 @@ export class GeminiClient {
     transcript: string,
     memberNames: string[]
   ): Promise<GeminiAnalysisOutput> {
-    const mockOutput: GeminiAnalysisOutput = {
-      summary: 'The team discussed the launch of the CatchUp dashboard, including backend schema development and landing page animations.',
-      discussionTopics: ['CatchUp Dashboard Launch', 'Backend Schema', 'Landing Page Animations'],
-      decisions: ['Integrate backend by Thursday', 'Finish landing page by tomorrow'],
-      outcomes: ['Assigned task for landing page to Designer', 'Assigned task for backend to Developer'],
-      audioQualityScore: 92,
-      rawAssignments: [
-        {
-          description: 'Finish landing page animations',
-          extractedAssigneeName: memberNames[0] || 'Designer',
-          confidence: 0.9,
-          deadline: new Date(Date.now() + 24 * 3600 * 1000).toISOString(), // Tomorrow
-        },
-        {
-          description: 'Develop backend schemas and models',
-          extractedAssigneeName: memberNames[1] || 'Developer',
-          confidence: 0.85,
-          deadline: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(), // Thursday
-          suggestedDependsOnTitle: 'Finish landing page animations', // mock dependency
-        },
-      ],
-    };
-
-    // Development / Test: allow mock fallback for convenience
-    if (!isProd) {
-      if (!apiKey || apiKey.startsWith('AQ.')) {
-        console.warn('[GeminiClient] Using mock analysis because GOOGLE_API_KEY is missing or appears to be a placeholder in non-production environment.');
+    // Validate API key availability
+    if (!apiKey) {
+      const msg = '[GeminiClient] GOOGLE_API_KEY is missing. Cannot analyze transcript.';
+      if (allowMockAI && !isProd) {
+        const mockOutput: GeminiAnalysisOutput = {
+          summary: 'The team discussed the launch of the CatchUp dashboard, including backend schema development and landing page animations.',
+          discussionTopics: ['CatchUp Dashboard Launch', 'Backend Schema', 'Landing Page Animations'],
+          decisions: ['Integrate backend by Thursday', 'Finish landing page by tomorrow'],
+          outcomes: ['Assigned task for landing page to Designer', 'Assigned task for backend to Developer'],
+          audioQualityScore: 92,
+          rawAssignments: [
+            {
+              description: 'Finish landing page animations',
+              extractedAssigneeName: memberNames[0] || 'Designer',
+              confidence: 0.9,
+              deadline: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            },
+            {
+              description: 'Develop backend schemas and models',
+              extractedAssigneeName: memberNames[1] || 'Developer',
+              confidence: 0.85,
+              deadline: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(),
+              suggestedDependsOnTitle: 'Finish landing page animations',
+            },
+          ],
+        };
+        console.warn(`${msg} ALLOW_MOCK_AI=true — returning mock analysis for development only.`);
         return mockOutput;
       }
+      console.error(msg);
+      throw new Error('Gemini analysis failed: GOOGLE_API_KEY missing');
     }
 
-    // Production: do not return mock data. Ensure apiKey exists (constructor already throws) and attempt real analysis.
-    if (isProd && !apiKey) {
-      console.error('[GeminiClient] Missing GOOGLE_API_KEY in production. Cannot analyze transcript.');
-      throw new Error('GOOGLE_API_KEY missing in production');
+    if (apiKey.startsWith('AQ.')) {
+      const msg = '[GeminiClient] GOOGLE_API_KEY appears to be a placeholder (AQ.*). Cannot analyze transcript.';
+      if (allowMockAI && !isProd) {
+        const mockOutput: GeminiAnalysisOutput = {
+          summary: 'The team discussed the launch of the CatchUp dashboard, including backend schema development and landing page animations.',
+          discussionTopics: ['CatchUp Dashboard Launch', 'Backend Schema', 'Landing Page Animations'],
+          decisions: ['Integrate backend by Thursday', 'Finish landing page by tomorrow'],
+          outcomes: ['Assigned task for landing page to Designer', 'Assigned task for backend to Developer'],
+          audioQualityScore: 92,
+          rawAssignments: [
+            {
+              description: 'Finish landing page animations',
+              extractedAssigneeName: memberNames[0] || 'Designer',
+              confidence: 0.9,
+              deadline: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            },
+            {
+              description: 'Develop backend schemas and models',
+              extractedAssigneeName: memberNames[1] || 'Developer',
+              confidence: 0.85,
+              deadline: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(),
+              suggestedDependsOnTitle: 'Finish landing page animations',
+            },
+          ],
+        };
+        console.warn(`${msg} ALLOW_MOCK_AI=true — returning mock analysis for development only.`);
+        return mockOutput;
+      }
+      console.error(msg);
+      throw new Error('Gemini analysis failed: GOOGLE_API_KEY is not configured');
     }
 
     try {
@@ -180,16 +218,14 @@ export class GeminiClient {
       const response = await result.response;
       const jsonText = response.text();
 
+      if (!jsonText) {
+        throw new Error('Gemini API returned empty analysis response');
+      }
+
       return JSON.parse(jsonText) as GeminiAnalysisOutput;
     } catch (error) {
       console.error('[GeminiClient] Transcript analysis failed:', error);
-      // In non-production we can fallback to mock for developer productivity
-      if (!isProd) {
-        console.warn('[GeminiClient] Falling back to mock analysis in non-production environment.');
-        return mockOutput;
-      }
-      // In production surface the error instead of returning mock data
-      throw new Error('Gemini analysis failed in production: ' + (error as any)?.message || String(error));
+      throw new Error('Gemini analysis failed: ' + (error as any)?.message || String(error));
     }
   }
 }
