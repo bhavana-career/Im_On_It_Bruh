@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = process.env.GOOGLE_API_KEY || '';
+const isProd = process.env.NODE_ENV === 'production';
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export interface GeminiAnalysisOutput {
@@ -24,7 +25,14 @@ export class GeminiClient {
 
   constructor() {
     if (!apiKey) {
-      console.warn('[GeminiClient] GOOGLE_API_KEY is not defined. Gemini client calls will fail.');
+      const msg = '[GeminiClient] GOOGLE_API_KEY is not defined.';
+      if (isProd) {
+        // In production fail-fast and provide structured logging
+        console.error(`${msg} Production requires a valid GOOGLE_API_KEY for Gemini generative & STT integrations.`);
+        throw new Error('Gemini integration unavailable: GOOGLE_API_KEY missing in production');
+      } else {
+        console.warn(`${msg} Running in non-production mode — mock outputs will be used for transcription and analysis.`);
+      }
     }
   }
 
@@ -32,15 +40,25 @@ export class GeminiClient {
    * Transcribe audio buffer using Gemini 1.5 Pro.
    */
   async transcribeAudio(audioBuffer: Buffer, mimeType: string): Promise<string> {
-    const mockTranscript = 'Mock Transcript: [Visualizing mockup meeting transcription.]\nAdmin: Hello team, let\'s launch the CatchUp dashboard.\nDeveloper: Yes, I am working on the backend schema.\nDesigner: Great, I will finish the landing page animations. Let\'s make sure we have the landing page ready by tomorrow, and then the backend should be integrated by Thursday.';
-    
-    if (!apiKey || apiKey.startsWith('AQ.')) {
-      return mockTranscript;
+    const mockTranscript = 'Mock Transcript: [Visualizing mockup meeting transcription.]\nAdmin: Hello team, let\'s launch the CatchUp dashboard.\nDeveloper: Yes, I am working on the backend schem[...]';
+
+    // Development / Test: allow mock fallback for convenience
+    if (!isProd) {
+      if (!apiKey || apiKey.startsWith('AQ.')) {
+        console.warn('[GeminiClient] Using mock transcript because GOOGLE_API_KEY is missing or appears to be a placeholder in non-production environment.');
+        return mockTranscript;
+      }
+    }
+
+    // Production: do not return mock data. Ensure apiKey exists (constructor already throws) and attempt real transcription.
+    if (isProd && !apiKey) {
+      console.error('[GeminiClient] Missing GOOGLE_API_KEY in production. Cannot transcribe audio.');
+      throw new Error('GOOGLE_API_KEY missing in production');
     }
 
     try {
       const model = genAI.getGenerativeModel({ model: this.modelSTT });
-      
+
       const audioPart = {
         inlineData: {
           data: audioBuffer.toString('base64'),
@@ -54,8 +72,14 @@ export class GeminiClient {
       const response = await result.response;
       return response.text() || mockTranscript;
     } catch (error) {
-      console.error('[GeminiClient] Speech-to-Text transcription failed, falling back to mock:', error);
-      return mockTranscript;
+      console.error('[GeminiClient] Speech-to-Text transcription failed:', error);
+      // In non-production we can fallback to mock for developer productivity
+      if (!isProd) {
+        console.warn('[GeminiClient] Falling back to mock transcript in non-production environment.');
+        return mockTranscript;
+      }
+      // In production surface the error instead of returning mock data
+      throw new Error('Gemini transcription failed in production: ' + (error as any)?.message || String(error));
     }
   }
 
@@ -89,8 +113,18 @@ export class GeminiClient {
       ],
     };
 
-    if (!apiKey || apiKey.startsWith('AQ.')) {
-      return mockOutput;
+    // Development / Test: allow mock fallback for convenience
+    if (!isProd) {
+      if (!apiKey || apiKey.startsWith('AQ.')) {
+        console.warn('[GeminiClient] Using mock analysis because GOOGLE_API_KEY is missing or appears to be a placeholder in non-production environment.');
+        return mockOutput;
+      }
+    }
+
+    // Production: do not return mock data. Ensure apiKey exists (constructor already throws) and attempt real analysis.
+    if (isProd && !apiKey) {
+      console.error('[GeminiClient] Missing GOOGLE_API_KEY in production. Cannot analyze transcript.');
+      throw new Error('GOOGLE_API_KEY missing in production');
     }
 
     try {
@@ -106,18 +140,18 @@ export class GeminiClient {
         The active team members in this hub are: ${JSON.stringify(memberNames)}.
         
         Extract and evaluate the following:
-        1. Executive summary: Provide a generic high-level description of what transpired (e.g. pros/cons, general topics discussed, atmosphere/outcome) and do NOT mention the specific assignments/tasks inside this summary string. Keep tasks separate.
+        1. Executive summary: Provide a generic high-level description of what transpired (e.g. pros/cons, general topics discussed, atmosphere/outcome) and do NOT mention the specific assignment details verbatim. 
         2. Discussion Topics (ordered list of topics).
         3. Decisions Made (explicit decisions).
         4. Outcomes (results or agreements reached).
-        5. Audio Quality and Speech Clarity Score ("audioQualityScore"):
-           Evaluate the quality of the meeting audio and the clarity of speech (pronunciation/English clarity/completeness). Return an integer score between 0 and 100, where 100 is perfect signal and speech clarity, and a lower score (e.g. below 70) represents issues like poor signal, heavy accents, or fragmented audio.
+        5. Audio Quality and Speech Clarity Score (\"audioQualityScore\"):
+           Evaluate the quality of the meeting audio and the clarity of speech (pronunciation/English clarity/completeness). Return an integer score between 0 and 100, where 100 is perfect signal and 0 is unintelligible audio.
         6. Action items / Assignments: 
            - For each action item, match it to a team member in the member list by their name.
-           - Fuzzy Name Matching: If a first name or partial name is mentioned in the transcript (e.g., "Amruta" or "Bhavana"), you MUST match and resolve it to their full name from the active member list (e.g., "Amruta Nagarjun" or "Bhavana Shivakumar").
-           - Extract the deadline as an ISO string based on verbal dates (e.g. "by tomorrow", "by Friday"). 
+           - Fuzzy Name Matching: If a first name or partial name is mentioned in the transcript (e.g., \"Amruta\" or \"Bhavana\"), you MUST match and resolve it to their full name from the active member list provided.
+           - Extract the deadline as an ISO string based on verbal dates (e.g. \"by tomorrow\", \"by Friday\"). 
            - Set a confidence score between 0.0 and 1.0 based on how clear the assignment and deadline are.
-           - Identify if the task depends on another task (i.e. "suggestedDependsOnTitle" should name the other task's description/title).
+           - Identify if the task depends on another task (i.e. \"suggestedDependsOnTitle\" should name the other task's description/title).
  
         Return the data strictly in the following JSON format:
         {
@@ -145,11 +179,17 @@ export class GeminiClient {
 
       const response = await result.response;
       const jsonText = response.text();
-      
+
       return JSON.parse(jsonText) as GeminiAnalysisOutput;
     } catch (error) {
-      console.error('[GeminiClient] Transcript analysis failed, falling back to mock:', error);
-      return mockOutput;
+      console.error('[GeminiClient] Transcript analysis failed:', error);
+      // In non-production we can fallback to mock for developer productivity
+      if (!isProd) {
+        console.warn('[GeminiClient] Falling back to mock analysis in non-production environment.');
+        return mockOutput;
+      }
+      // In production surface the error instead of returning mock data
+      throw new Error('Gemini analysis failed in production: ' + (error as any)?.message || String(error));
     }
   }
 }
