@@ -102,8 +102,14 @@ export class HubService {
    * Get all hubs where user has member role.
    */
   async getMemberHubs(userId: string) {
+    // Find hubs where user is admin so we can exclude them
+    const adminMemberships = await HubMembership.find({ userId, role: 'admin', status: 'active' }).select('hubId');
+    const adminHubIds = new Set(adminMemberships.map((m) => m.hubId.toString()));
+
     const memberships = await HubMembership.find({ userId, role: 'member', status: 'active' }).populate('hubId');
-    const activeMemberships = memberships.filter((m) => m.hubId && !(m.hubId as any).isDeleted);
+    const activeMemberships = memberships.filter(
+      (m) => m.hubId && !(m.hubId as any).isDeleted && !adminHubIds.has((m.hubId as any)._id.toString())
+    );
 
     const hubs = [];
     for (const membership of activeMemberships) {
@@ -414,7 +420,7 @@ export class HubService {
   }
 
   /**
-   * Remove member.
+   * Remove member (silently — no notification to keep feelings intact).
    */
   async removeMember(hubId: string, userId: string) {
     const membership = await HubMembership.findOne({ hubId, userId });
@@ -458,6 +464,65 @@ export class HubService {
     }
 
     return this.joinHub(userId, hub._id.toString(), 'code');
+  }
+
+  /**
+   * Delete a hub.
+   * If there is only 1 admin: deletes immediately.
+   * If there are 2+ admins: throws an error with admin count so the
+   * frontend can start a 2-of-3 voting flow via HubActionRequest.
+   */
+  async deleteHub(hubId: string, requesterId: string) {
+    const requesterMembership = await HubMembership.findOne({ hubId, userId: requesterId, role: 'admin', status: 'active' });
+    if (!requesterMembership) throw new Error('Only admins can delete a hub');
+
+    const adminCount = await HubMembership.countDocuments({ hubId, role: 'admin', status: 'active' });
+    if (adminCount > 1) {
+      throw new Error(`MULTI_ADMIN:${adminCount}`);
+    }
+
+    const hub = await Hub.findById(hubId);
+    if (!hub || hub.isDeleted) throw new Error('Hub not found');
+    hub.isDeleted = true;
+    await hub.save();
+    return { deleted: true };
+  }
+
+  /**
+   * Toggle hub visibility (public <-> private).
+   * Single admin: changes immediately.
+   * Multiple admins: throws MULTI_ADMIN error so frontend starts voting.
+   */
+  async updateVisibility(hubId: string, requesterId: string, visibility: 'public' | 'private') {
+    const requesterMembership = await HubMembership.findOne({ hubId, userId: requesterId, role: 'admin', status: 'active' });
+    if (!requesterMembership) throw new Error('Only admins can change visibility');
+
+    const adminCount = await HubMembership.countDocuments({ hubId, role: 'admin', status: 'active' });
+    if (adminCount > 1) {
+      throw new Error(`MULTI_ADMIN:${adminCount}`);
+    }
+
+    const hub = await Hub.findById(hubId);
+    if (!hub || hub.isDeleted) throw new Error('Hub not found');
+    hub.visibility = visibility;
+    await hub.save();
+    return hub;
+  }
+
+  /**
+   * Promote a member to admin within a hub.
+   * Only existing admins of the same hub can promote members.
+   */
+  async promoteMember(hubId: string, promoterId: string, targetUserId: string) {
+    const promoterMembership = await HubMembership.findOne({ hubId, userId: promoterId, role: 'admin', status: 'active' });
+    if (!promoterMembership) throw new Error('Only admins can promote members');
+
+    const targetMembership = await HubMembership.findOne({ hubId, userId: targetUserId, status: 'active' });
+    if (!targetMembership) throw new Error('User is not an active member of this hub');
+
+    targetMembership.role = 'admin';
+    await targetMembership.save();
+    return targetMembership;
   }
 }
 

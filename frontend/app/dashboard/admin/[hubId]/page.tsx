@@ -16,6 +16,10 @@ export default function AdminHubDashboard() {
   const [hubName, setHubName] = useState('Hub Admin Panel');
   const [hubAvatar, setHubAvatar] = useState<string | null>(null);
   const [hubPromoCode, setHubPromoCode] = useState<string | null>(null);
+  const [hubVisibility, setHubVisibility] = useState<'public' | 'private'>('public');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showVisibilityModal, setShowVisibilityModal] = useState(false);
+  const [pendingVisibility, setPendingVisibility] = useState<'public' | 'private' | null>(null);
 
   // Custom scheduler states
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
@@ -213,6 +217,7 @@ export default function AdminHubDashboard() {
           setEditHubName(currentHub.name);
           setEditHubDesc(currentHub.description || '');
           setHubPromoCode(currentHub.promoCode || null);
+          setHubVisibility(currentHub.visibility || 'public');
         }
       }
     } catch (err) {
@@ -693,12 +698,12 @@ export default function AdminHubDashboard() {
     const userName = member?.userId?.profileName || 'this member';
     setMemberConfirmModal({
       isOpen: true,
-      title: 'Are you sure?',
-      message: `Are you sure you want to make admin member ${userName} in ${hubName}?`,
+      title: 'Promote to Admin?',
+      message: `Make ${userName} an admin of ${hubName}? They will have full control over this hub.`,
       onConfirm: async () => {
         if (!(session as any)?.accessToken) return;
         try {
-          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/promote/${userId}`, {
+          const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/promote-member/${userId}`, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${(session as any).accessToken}` },
           });
@@ -736,8 +741,8 @@ export default function AdminHubDashboard() {
     const userName = session?.user?.name || 'you';
     setMemberConfirmModal({
       isOpen: true,
-      title: 'Are you sure?',
-      message: `Are you sure you want to leave member ${userName} from ${hubName}?`,
+      title: 'Leave Hub?',
+      message: `Are you sure you want to leave ${hubName}?`,
       onConfirm: async () => {
         if (!(session as any)?.accessToken || !session?.user) return;
         try {
@@ -757,6 +762,50 @@ export default function AdminHubDashboard() {
         }
       }
     });
+  };
+
+  const handleDeleteHub = async () => {
+    if (!(session as any)?.accessToken) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${(session as any).accessToken}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.push('/dashboard');
+      } else if (data.error === 'MULTI_ADMIN') {
+        alert(`This hub has ${data.adminCount} admins. All admins must agree to delete. Please coordinate with your co-admins. (Multi-admin voting coming soon.)`);
+        setShowDeleteConfirm(false);
+      } else {
+        alert(data.error || 'Failed to delete the hub.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleVisibilityChange = async (newVisibility: 'public' | 'private') => {
+    if (!(session as any)?.accessToken) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/hubs/${hubId}/visibility`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(session as any).accessToken}` },
+        body: JSON.stringify({ visibility: newVisibility }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHubVisibility(newVisibility);
+        setShowVisibilityModal(false);
+      } else if (data.error === 'MULTI_ADMIN') {
+        alert(`This hub has ${data.adminCount} admins. All admins must agree to change visibility. (Multi-admin voting coming soon.)`);
+        setShowVisibilityModal(false);
+      } else {
+        alert(data.error || 'Failed to update visibility.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -840,12 +889,31 @@ export default function AdminHubDashboard() {
           </div>
         </div>
 
-        <button
-          onClick={handleLeaveHub}
-          className="px-4 py-2 rounded-xl bg-red-600/10 text-red-500 hover:bg-red-600/20 font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
-        >
-          <i className="ti ti-logout" /> Leave Group
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Visibility Toggle */}
+          <button
+            onClick={() => { setPendingVisibility(hubVisibility === 'public' ? 'private' : 'public'); setShowVisibilityModal(true); }}
+            className="px-3 py-2 rounded-xl bg-secondary hover:bg-opacity-80 text-foreground font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
+            title="Change hub visibility"
+          >
+            <i className={`ti ${hubVisibility === 'public' ? 'ti-world' : 'ti-lock'}`} />
+            {hubVisibility === 'public' ? 'Public' : 'Private'}
+          </button>
+
+          <button
+            onClick={handleLeaveHub}
+            className="px-3 py-2 rounded-xl bg-yellow-600/10 text-yellow-500 hover:bg-yellow-600/20 font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
+          >
+            <i className="ti ti-logout" /> Leave
+          </button>
+
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-3 py-2 rounded-xl bg-red-600/10 text-red-500 hover:bg-red-600/20 font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
+          >
+            <i className="ti ti-trash" /> Delete Hub
+          </button>
+        </div>
       </div>
 
       {/* Invite Members Card */}
@@ -2109,6 +2177,75 @@ export default function AdminHubDashboard() {
             <div className="p-6 rounded-2xl bg-card border border-border">
               <span className="text-xs text-muted-foreground uppercase font-bold">Overdue Tasks</span>
               <div className="text-3xl font-extrabold mt-2 text-foreground">{analytics?.tasks?.overdue || 0}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Hub Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+          <div className="w-full max-w-md p-6 rounded-2xl bg-card border border-red-500/30 shadow-2xl flex flex-col gap-5">
+            <div className="flex items-center gap-3 text-red-500">
+              <i className="ti ti-alert-triangle text-2xl" />
+              <h2 className="text-lg font-bold">Delete Hub</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You are about to permanently delete <span className="text-foreground font-bold">"{hubName}"</span>.
+              All meetings, tasks, broadcasts, and member records will be removed. This cannot be undone.
+            </p>
+            <p className="text-xs text-muted-foreground bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+              If there are multiple admins, all admins must agree before deletion can proceed.
+            </p>
+            <div className="flex gap-3 pt-2 border-t border-border">
+              <button
+                onClick={handleDeleteHub}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer transition-all"
+              >
+                Yes, Delete Permanently
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Visibility Change Modal */}
+      {showVisibilityModal && pendingVisibility && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+          <div className="w-full max-w-md p-6 rounded-2xl bg-card border border-border shadow-2xl flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <i className={`ti ${pendingVisibility === 'public' ? 'ti-world' : 'ti-lock'} text-2xl text-primary`} />
+              <h2 className="text-lg font-bold">
+                Make Hub {pendingVisibility === 'public' ? 'Public' : 'Private'}?
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {pendingVisibility === 'public'
+                ? 'Anyone will be able to discover and join this hub without an invite. Are you sure?'
+                : 'Only people with an invite link or promo code will be able to join. New members will need admin approval.'}
+            </p>
+            <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-xl p-3">
+              If there are multiple admins, all admins must agree to this change.
+            </p>
+            <div className="flex gap-3 pt-2 border-t border-border">
+              <button
+                onClick={() => handleVisibilityChange(pendingVisibility)}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs cursor-pointer transition-all hover:opacity-90"
+              >
+                Confirm Change
+              </button>
+              <button
+                onClick={() => setShowVisibilityModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -323,6 +323,48 @@ router.put('/hubs/:hubId', authMiddleware, async (req: AuthenticatedRequest, res
   }
 });
 
+// Delete hub (single admin: instant; multi-admin: returns MULTI_ADMIN signal)
+router.delete('/hubs/:hubId', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await HubService.deleteHub(req.params.hubId, req.user!.id);
+    res.json(result);
+  } catch (error: any) {
+    if (error.message.startsWith('MULTI_ADMIN:')) {
+      const adminCount = parseInt(error.message.split(':')[1]);
+      return res.status(409).json({ error: 'MULTI_ADMIN', adminCount });
+    }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update hub visibility
+router.put('/hubs/:hubId/visibility', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { visibility } = req.body;
+  if (!visibility || !['public', 'private'].includes(visibility)) {
+    return res.status(400).json({ error: 'visibility must be "public" or "private"' });
+  }
+  try {
+    const hub = await HubService.updateVisibility(req.params.hubId, req.user!.id, visibility);
+    res.json(hub);
+  } catch (error: any) {
+    if (error.message.startsWith('MULTI_ADMIN:')) {
+      const adminCount = parseInt(error.message.split(':')[1]);
+      return res.status(409).json({ error: 'MULTI_ADMIN', adminCount });
+    }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Promote member to admin (replaces old promoteToAdmin route)
+router.put('/hubs/:hubId/promote-member/:userId', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const membership = await HubService.promoteMember(req.params.hubId, req.user!.id, req.params.userId);
+    res.json(membership);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.post('/hubs/:hubId/invite/revoke/:userId', authMiddleware, async (req: AuthenticatedRequest, res) => {
   try {
     const result = await HubService.revokeInvitation(req.params.hubId, req.params.userId);
