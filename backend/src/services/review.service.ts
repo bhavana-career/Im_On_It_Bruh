@@ -5,6 +5,7 @@ import User from '../models/User';
 import OrganizationalMemory from '../models/OrganizationalMemory';
 import AuditLog from '../models/AuditLog';
 import Meeting from '../models/Meeting';
+import MeetingArchive from '../models/MeetingArchive';
 import HubMembership from '../models/HubMembership';
 import { GoogleCalendarClient } from '../integrations/googleCalendar.client';
 import { notificationDispatchQueue } from '../jobs/queue';
@@ -222,6 +223,30 @@ export class ReviewService {
         memoryId: memory._id,
       },
     });
+
+    // 5. Auto-save to Meeting Archive (password-protected)
+    try {
+      const meeting = await Meeting.findById(artifact.meetingId);
+      await MeetingArchive.create({
+        hubId: artifact.hubId,
+        meetingId: artifact.meetingId,
+        meetingTitle: meeting?.title || artifact.summary.substring(0, 60),
+        scheduledAt: meeting?.scheduledAt,
+        summary: payload.summary,
+        discussionTopics: payload.discussionTopics,
+        decisions: payload.decisions,
+        approvedAssignments: payload.assignments.map((a) => ({
+          title: a.title,
+          assigneeName: a.assigneeEmail,
+          deadline: new Date(a.deadline),
+          priority: a.priority,
+        })),
+        approvedBy: adminId,
+      });
+      console.log(`[ReviewService] Meeting archive entry saved for meeting ${artifact.meetingId}`);
+    } catch (err) {
+      console.error('[ReviewService] Failed to save meeting archive entry:', err);
+    }
 
     return {
       status: 'success',

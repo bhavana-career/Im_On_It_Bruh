@@ -16,8 +16,11 @@ import Task from '../../models/Task';
 import User from '../../models/User';
 import HubMembership from '../../models/HubMembership';
 import Hub from '../../models/Hub';
+import MeetingArchive from '../../models/MeetingArchive';
 import { notificationDispatchQueue } from '../../jobs/queue';
 import { getStorageProvider } from '../../providers';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -508,6 +511,43 @@ router.get('/tasks/user/:hubId', authMiddleware, async (req: AuthenticatedReques
   }
 });
 
+// Update task deadline (admin only; deadline must be in the future)
+router.patch('/tasks/:taskId/deadline', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { deadline } = req.body;
+  if (!deadline) return res.status(400).json({ error: 'deadline is required' });
+
+  try {
+    const task = await (await import('../../models/Task')).default.findById(req.params.taskId);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    const now = new Date();
+    const currentDeadline = task.deadline ? new Date(task.deadline) : null;
+    const newDeadline = new Date(deadline);
+
+    // Rule: if the existing deadline has already passed, it CANNOT be edited
+    if (currentDeadline && currentDeadline < now) {
+      return res.status(400).json({
+        error: 'This deadline has already passed and cannot be changed.',
+        code: 'DEADLINE_EXPIRED',
+      });
+    }
+
+    // Rule: the new deadline must be in the future
+    if (newDeadline <= now) {
+      return res.status(400).json({
+        error: 'New deadline must be in the future.',
+        code: 'DEADLINE_MUST_BE_FUTURE',
+      });
+    }
+
+    task.deadline = newDeadline;
+    await task.save();
+    res.json(task);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --------------------------------------------------------
 // SUBMISSION ENDPOINTS (/api/v1/submissions)
 // --------------------------------------------------------
@@ -657,6 +697,90 @@ router.get('/analytics/:hubId', authMiddleware, async (req: AuthenticatedRequest
   try {
     const analytics = await AnalyticsService.getHubAnalytics(req.params.hubId);
     res.json(analytics);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --------------------------------------------------------
+// MEETING ARCHIVE ENDPOINTS (/api/v1/hubs/:hubId/archive)
+// --------------------------------------------------------
+
+// Set or update the archive PIN for a hub (admin only)
+router.post('/hubs/:hubId/archive/set-pin', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { pin } = req.body;
+  if (!pin || !/^[0-9]{4,6}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN must be 4–6 digits.' });
+  }
+  try {
+    const adminCheck = await HubMembership.findOne({ hubId: req.params.hubId, userId: req.user!.id, role: 'admin', status: 'active' });
+    if (!adminCheck) return res.status(403).json({ error: 'Only admins can set the archive PIN.' });
+
+    const hub = await Hub.findById(req.params.hubId).select('+archivePin');
+    if (!hub) return res.status(404).json({ error: 'Hub not found' });
+
+    hub.archivePin = await bcrypt.hash(pin, 12);
+    await hub.save();
+    res.json({ success: true, message: 'Archive PIN set successfully.' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify PIN and get a short-lived archive access token
+router.post('/hubs/:hubId/archive/verify-pin', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { pin } = req.body;
+  if (!pin) return res.status(400).json({ error: 'PIN is required.' });
+  try {
+    const hub = await Hub.findById(req.params.hubId).select('+archivePin');
+    if (!hub) return res.status(404).json({ error: 'Hub not found' });
+
+    if (!hub.archivePin) {
+      return res.status(400).json({ error: 'NO_PIN_SET', message: 'No archive PIN has been set yet. Please set one first.' });
+    }
+
+    const isMatch = await bcrypt.compare(pin.toString(), hub.archivePin);
+    if (!isMatch) return res.status(401).json({ error: 'Incorrect PIN.' });
+
+    // Issue a short-lived archive token (30 min)
+    const archiveToken = jwt.sign(
+      { hubId: req.params.hubId, userId: req.user!.id, purpose: 'archive' },
+      process.env.NEXTAUTH_SECRET || 'fallback-secret',
+      { expiresIn: '30m' }
+    );
+    res.json({ archiveToken });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get archive entries for a hub (requires archive token)
+router.get('/hubs/:hubId/archive', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const archiveToken = req.headers['x-archive-token'] as string;
+  if (!archiveToken) return res.status(401).json({ error: 'Archive access token required.' });
+
+  try {
+    const decoded = jwt.verify(archiveToken, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    if (decoded.hubId !== req.params.hubId || decoded.purpose !== 'archive') {
+      return res.status(401).json({ error: 'Invalid archive token.' });
+    }
+
+    const entries = await MeetingArchive.find({ hubId: req.params.hubId }).sort({ createdAt: -1 });
+    res.json(entries);
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Archive session expired. Please verify PIN again.' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if archive PIN is set for a hub
+router.get('/hubs/:hubId/archive/status', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const hub = await Hub.findById(req.params.hubId).select('+archivePin');
+    if (!hub) return res.status(404).json({ error: 'Hub not found' });
+    res.json({ pinSet: !!hub.archivePin });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

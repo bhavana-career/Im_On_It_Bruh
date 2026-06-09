@@ -73,6 +73,7 @@ export class MeetingService {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
       });
+      const durationMinutes = estimatedDuration || 30;
 
       const now = new Date();
       const diffMs = new Date(scheduledAt).getTime() - now.getTime();
@@ -109,8 +110,10 @@ export class MeetingService {
             meetingTitle: title,
             hubName,
             scheduledAt: scheduledAtStr,
+            scheduledAtIso: new Date(scheduledAt).toISOString(),
             description,
             hubId: hubId.toString(),
+            estimatedDuration: durationMinutes,
           },
         });
 

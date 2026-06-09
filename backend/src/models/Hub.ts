@@ -6,6 +6,7 @@ export interface IHub extends Document {
   profileImageUrl?: string;
   visibility: 'public' | 'private';
   promoCode: string;
+  archivePin?: string; // bcrypt hash of the admin-set access PIN
   createdBy: mongoose.Types.ObjectId;
   isDeleted: boolean;
   createdAt: Date;
@@ -19,6 +20,7 @@ const HubSchema = new Schema<IHub>(
     profileImageUrl: { type: String },
     visibility: { type: String, enum: ['public', 'private'], default: 'public' },
     promoCode: { type: String, unique: true, sparse: true, index: true },
+    archivePin: { type: String, select: false }, // never returned in normal queries
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isDeleted: { type: Boolean, default: false },
   },

@@ -11,13 +11,34 @@ if (apiKey && apiKey.startsWith('SG.')) {
   console.warn('[SendGridClient] SENDGRID_API_KEY is not defined or invalid. Emails will be logged to console instead.');
 }
 
+interface EmailAttachment {
+  content: string;
+  filename: string;
+  type: string;
+  disposition: 'attachment';
+}
+
+interface MeetingInviteAttachmentInput {
+  meetingTitle: string;
+  description?: string;
+  scheduledAtIso: string;
+  estimatedDurationMinutes: number;
+  location?: string;
+}
+
 export class SendGridClient {
-  async sendEmail(to: string, subject: string, htmlContent: string): Promise<boolean> {
+  async sendEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
+    attachments?: EmailAttachment[]
+  ): Promise<boolean> {
     const msg = {
       to,
       from: emailFrom,
       subject,
       html: htmlContent,
+      attachments,
     };
 
     console.log(`[SendGridClient] Sending Email to ${to}: "${subject}"`);
@@ -39,6 +60,42 @@ export class SendGridClient {
       console.error('[SendGridClient] SendGrid failed to send email. Details:', errBody);
       return false;
     }
+  }
+
+  buildMeetingInviteAttachment(input: MeetingInviteAttachmentInput): EmailAttachment {
+    const start = new Date(input.scheduledAtIso);
+    const end = new Date(start.getTime() + input.estimatedDurationMinutes * 60 * 1000);
+    const uid = `${start.getTime()}-${input.meetingTitle.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}@imonitbruh`;
+    const description = (input.description || '').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    const location = (input.location || '').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    const formatDate = (value: Date) => value.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ImOnItBruh//Meeting Invite//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:REQUEST',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${formatDate(new Date())}`,
+      `DTSTART:${formatDate(start)}`,
+      `DTEND:${formatDate(end)}`,
+      `SUMMARY:${input.meetingTitle}`,
+      `DESCRIPTION:${description}`,
+      `LOCATION:${location}`,
+      'STATUS:CONFIRMED',
+      'SEQUENCE:0',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    return {
+      content: Buffer.from(ics, 'utf8').toString('base64'),
+      filename: 'meeting-invite.ics',
+      type: 'text/calendar',
+      disposition: 'attachment',
+    };
   }
 
   /**
