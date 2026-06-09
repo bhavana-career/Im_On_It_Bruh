@@ -262,41 +262,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Primary Shell
             </div>
 
-            <button
-              onClick={() => handleTabClick('recommendations')}
+            <Link
+              href="/dashboard"
+              onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false); }}
               className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === 'recommendations' && pathname === '/dashboard'
+                pathname === '/dashboard'
                   ? 'bg-primary/10 text-primary font-bold'
                   : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
               }`}
             >
-              <i className="ti ti-apps text-lg" />
-              Recommendations
-            </button>
-
-            <button
-              onClick={() => handleTabClick('admin')}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === 'admin' && pathname === '/dashboard'
-                  ? 'bg-primary/10 text-primary font-bold'
-                  : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <i className="ti ti-shield-half text-lg" />
-              Admin Hubs
-            </button>
-
-            <button
-              onClick={() => handleTabClick('member')}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === 'member' && pathname === '/dashboard'
-                  ? 'bg-primary/10 text-primary font-bold'
-                  : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <i className="ti ti-users text-lg" />
-              Member Hubs
-            </button>
+              <i className="ti ti-home text-lg" />
+              Dashboard
+            </Link>
           </aside>
         )}
 

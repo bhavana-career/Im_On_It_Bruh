@@ -3,12 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDashboardStore } from '../../store/dashboardStore';
 import { API_URL } from '@/lib/config';
+
 export default function DashboardHome() {
   const { data: session } = useSession();
-  const { activeTab, setActiveTab } = useDashboardStore();
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [adminHubs, setAdminHubs] = useState<any[]>([]);
   const [memberHubs, setMemberHubs] = useState<any[]>([]);
@@ -373,199 +371,130 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Tabs Row (Horizontal selector) */}
-      <div className="flex border-b border-border gap-2 pb-px overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => setActiveTab('recommendations')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'recommendations'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-xl'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-          }`}
-        >
-          <i className="ti ti-compass text-base" />
-          Discover Hubs ({recommendations.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('admin')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'admin'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-xl'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-          }`}
-        >
-          <i className="ti ti-shield-half text-base" />
-          Hubs You Administer ({adminHubs.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('member')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'member'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-xl'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-          }`}
-        >
-          <i className="ti ti-users text-base" />
-          Hubs You Have Joined ({memberHubs.length})
-        </button>
-      </div>
-
-      {/* Tab Content Display Area */}
-      <div className="min-h-[300px]">
-        <AnimatePresence mode="wait">
-          {activeTab === 'admin' && (
-            <motion.div
-              key="admin-hubs"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col"
-            >
-              <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4 px-1">
-                <i className="ti ti-shield-half text-primary mr-2" /> Hubs You Administer
-              </h2>
-              {adminHubs.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-card border border-border text-center text-sm text-muted-foreground">
-                  You don't administer any hubs yet. Create one above!
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {adminHubs.map((hub) => (
-                    <div key={hub._id} className="p-6 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
-                      <div>
-                        <div className="flex items-center gap-3 mb-3 justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
-                              {hub.profileImageUrl ? (
-                                <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <span>{hub.name.charAt(0).toUpperCase()}</span>
-                              )}
-                            </div>
-                            <h3 className="font-bold text-base text-foreground line-clamp-1">{hub.name}</h3>
-                          </div>
-                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">Admin</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-6">{hub.description}</p>
+      {/* Hubs You Administer */}
+      <section>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+          <i className="ti ti-shield-half text-primary" /> Hubs You Administer
+          <span className="ml-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{adminHubs.length}</span>
+        </h2>
+        {adminHubs.length === 0 ? (
+          <div className="p-8 rounded-2xl bg-card border border-border text-center text-sm text-muted-foreground">
+            You don't administer any hubs yet. Create one above!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {adminHubs.map((hub) => (
+              <div key={hub._id} className="p-5 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
+                <div>
+                  <div className="flex items-center gap-3 mb-3 justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
+                        {hub.profileImageUrl ? (
+                          <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{hub.name.charAt(0).toUpperCase()}</span>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-                        <span>{hub.memberCount} members</span>
-                        <Link
-                          href={`/dashboard/admin/${hub._id}`}
-                          className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          Control Panel <i className="ti ti-arrow-right" />
-                        </Link>
-                      </div>
+                      <h3 className="font-bold text-sm text-foreground line-clamp-1">{hub.name}</h3>
                     </div>
-                  ))}
+                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/10 text-primary shrink-0">Admin</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4">{hub.description}</p>
                 </div>
-              )}
-            </motion.div>
-          )}
+                <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span>{hub.memberCount} members</span>
+                  <Link href={`/dashboard/admin/${hub._id}`} className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                    Control Panel <i className="ti ti-arrow-right" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-          {activeTab === 'member' && (
-            <motion.div
-              key="member-hubs"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col"
-            >
-              <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4 px-1">
-                <i className="ti ti-users text-primary mr-2" /> Hubs You Have Joined
-              </h2>
-              {memberHubs.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-card border border-border text-center text-sm text-muted-foreground">
-                  You haven't joined any hubs as a member. Discover public hubs below!
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {memberHubs.map((hub) => (
-                    <div key={hub._id} className="p-6 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
-                      <div>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
-                            {hub.profileImageUrl ? (
-                              <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span>{hub.name.charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <h3 className="font-bold text-base text-foreground line-clamp-1">{hub.name}</h3>
+      {/* Hubs You Have Joined (filtered to exclude admin hubs) */}
+      {(() => {
+        const adminHubIds = new Set(adminHubs.map((h: any) => h._id));
+        const filteredMemberHubs = memberHubs.filter((h: any) => !adminHubIds.has(h._id));
+        return (
+          <section>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+              <i className="ti ti-users text-primary" /> Hubs You Have Joined
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{filteredMemberHubs.length}</span>
+            </h2>
+            {filteredMemberHubs.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-card border border-border text-center text-sm text-muted-foreground">
+                You haven't joined any hubs as a member yet. Enter a promo code above or discover public hubs below!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {filteredMemberHubs.map((hub: any) => (
+                  <div key={hub._id} className="p-5 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
+                          {hub.profileImageUrl ? (
+                            <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{hub.name.charAt(0).toUpperCase()}</span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-6">{hub.description}</p>
+                        <h3 className="font-bold text-sm text-foreground line-clamp-1">{hub.name}</h3>
                       </div>
-                      <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-                        <span>{hub.memberCount} members</span>
-                        <Link
-                          href={`/dashboard/member/${hub._id}`}
-                          className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          View Hub <i className="ti ti-arrow-right" />
-                        </Link>
-                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4">{hub.description}</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
+                    <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                      <span>{hub.memberCount} members</span>
+                      <Link href={`/dashboard/member/${hub._id}`} className="font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                        View Hub <i className="ti ti-arrow-right" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
-          {activeTab === 'recommendations' && (
-            <motion.div
-              key="recommendations-hubs"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col"
-            >
-              <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4 px-1">
-                <i className="ti ti-compass text-primary mr-2" /> Discover Public Hubs
-              </h2>
-              {recommendations.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-card border border-border text-center text-sm text-muted-foreground">
-                  No public hubs available to join at this time.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {recommendations.map((hub) => (
-                    <div key={hub._id} className="p-6 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
-                      <div>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
-                            {hub.profileImageUrl ? (
-                              <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span>{hub.name.charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <h3 className="font-bold text-base text-foreground line-clamp-1">{hub.name}</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-6">{hub.description}</p>
-                      </div>
-                      <div className="flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-                        <span>{hub.memberCount} members</span>
-                        <button
-                          onClick={() => handleJoinHub(hub._id)}
-                          className="px-3 py-1.5 rounded-lg bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground font-bold text-xs transition-all cursor-pointer"
-                        >
-                          Join Hub
-                        </button>
-                      </div>
+      {/* Discover Public Hubs (only shown if there are recommendations) */}
+      {recommendations.length > 0 && (
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+            <i className="ti ti-compass text-primary" /> Discover Public Hubs
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{recommendations.length}</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {recommendations.map((hub) => (
+              <div key={hub._id} className="p-5 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-primary/40 transition-all">
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0 border border-border">
+                      {hub.profileImageUrl ? (
+                        <img src={`${API_URL}${hub.profileImageUrl}`} alt={hub.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{hub.name.charAt(0).toUpperCase()}</span>
+                      )}
                     </div>
-                  ))}
+                    <h3 className="font-bold text-sm text-foreground line-clamp-1">{hub.name}</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4">{hub.description}</p>
                 </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span>{hub.memberCount} members</span>
+                  <button
+                    onClick={() => handleJoinHub(hub._id)}
+                    className="px-3 py-1.5 rounded-lg bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Join Hub
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Reusable Custom Confirmation Modal */}
       {memberConfirmModal.isOpen && (
